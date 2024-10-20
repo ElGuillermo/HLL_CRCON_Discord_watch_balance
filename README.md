@@ -5,7 +5,7 @@ that watches the teams players levels.
 
 ![375489638-1b9f8fec-7f27-49a0-a4a7-a825fbbf174b](https://github.com/user-attachments/assets/2357b6a2-3a79-492b-8d9c-c1aaff9abf33)
 
-Install (open this file for complete procedure) :
+### Install
 - Create a `custom_tools` folder in CRCON's root (`/root/hll_rcon_tool/`) ;
 - Copy `watch_balance.py` in `/root/hll_rcon_tool/custom_tools/` ;
 - Copy `custom_common.py` in `/root/hll_rcon_tool/custom_tools/` ;
@@ -21,7 +21,7 @@ Install (open this file for complete procedure) :
   autorestart=true
   ```
 
-Config :
+### Config :
 - Edit `/root/hll_rcon_tool/custom_tools/watch_balance.py` and set the parameters to your needs ;
 - Edit `/root/hll_rcon_tool/custom_tools/custom_common.py` and set the parameters to your needs ;
 - Restart CRCON :
