@@ -9,6 +9,14 @@ Source : https://github.com/ElGuillermo
 Feel free to use/modify/distribute, as long as you keep this note in your code
 """
 
+"""
+Customized by LordofAgents from "Die Trümmertruppe" and "Hack Let Loose"
+Changes: 
+- Use the same message again, do not spam channel
+- Corrected german Translation
+"""
+
+
 import json
 import logging
 from datetime import datetime, timezone, timedelta
@@ -17,7 +25,13 @@ import discord  # type: ignore
 from rcon.rcon import Rcon
 from rcon.steam_utils import get_steam_api_key
 from rcon.user_config.rcon_server_settings import RconServerSettingsUserConfig
-
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+from contextlib import contextmanager
+from typing import Callable, Generator
+from sqlalchemy import create_engine, select
+from rcon.utils import get_server_number
+from discord.errors import HTTPException, NotFound
+from requests.exceptions import ConnectionError, RequestException
 
 # Configuration (you should review/change these !)
 # -----------------------------------------------------------------------------
@@ -76,37 +90,37 @@ WEAPONS_ARTILLERY = [
 
 TRANSL = {
     # Roles
-    "armycommander": ["commander", "commandant", "kommandant"],
-    "officer": ["squad leader", "officier", "offizier"],
-    "rifleman": ["rifleman", "fusilier", "schütze"],
-    "assault": ["assault", "assault", "angriff"],
-    "automaticrifleman": ["automatic rifleman", "fusilier automatique", "automatischer schütze"],
-    "medic": ["medic", "médecin", "arfzt"],
-    "support": ["support", "soutien", "unterstützung"],
-    "heavymachinegunner": ["heavy machinegunner", "mitrailleur", "schweres maschinengewehr"],
-    "antitank": ["antitank", "antichar", "panzerabwehr"],
-    "engineer": ["engineer", "ingénieur", "ingenieur"],
-    "tankcommander": ["tank commander", "commandant de char", "panzerkommandant"],
-    "crewman": ["crewman", "équipier", "besatzungsmitglied"],
-    "spotter": ["spotter", "observateur", "aufklärer"],
+    "armycommander": ["commander", "commandant", "Kommandant"],
+    "officer": ["squad leader", "officier", "Offizier"],
+    "rifleman": ["rifleman", "fusilier", "Schütze"],
+    "assault": ["assault", "assault", "Sturmangreifer"],
+    "automaticrifleman": ["automatic rifleman", "fusilier automatique", "Automatikgewehrschütze"],
+    "medic": ["medic", "médecin", "Sanitäter"],
+    "support": ["support", "soutien", "Unterstützung"],
+    "heavymachinegunner": ["heavy machinegunner", "mitrailleur", "Maschinengewehrschütze"],
+    "antitank": ["antitank", "antichar", "Panzerabwehr"],
+    "engineer": ["engineer", "ingénieur", "Pionier"],
+    "tankcommander": ["tank commander", "commandant de char", "Panzerkommandant"],
+    "crewman": ["crewman", "équipier", "Besatzungsmitglied"],
+    "spotter": ["spotter", "observateur", "Späher"],
     "sniper": ["sniper", "sniper", "scharfschütze"],
     # Teams
     "allies": ["Allies", "Alliés", "Alliierte"],
     "axis": ["Axis", "Axe", "Achsenmächte"],
     # Stats
-    "level": ["level", "niveau", "ebene"],
-    "lvl": ["lvl", "niv", "ebe"],
-    "combat": ["combat", "combat", "kampf"],
-    "offense": ["attack", "attaque", "angriff"],
-    "defense": ["defense", "défense", "verteidigung"],
-    "kills": ["kills", "kills", "tötet"],
-    "deaths": ["deaths", "morts", "todesfälle"],
+    "level": ["level", "niveau", "Level"],
+    "lvl": ["lvl", "niv", "Lvl"],
+    "combat": ["combat", "combat", "Kampfeffektivität"],
+    "offense": ["attack", "attaque", "Angriff"],
+    "defense": ["defense", "défense", "Verteidigung"],
+    "kills": ["kills", "kills", "Kills"],
+    "deaths": ["deaths", "morts", "Deaths"],
     # Units
     "years": ["years", "années", "Jahre"],
     "monthes": ["monthes", "mois", "Monate"],
     "weeks": ["weeks", "semaines", "Wochen"],
     "days": ["days", "jours", "Tage"],
-    "hours": ["hours", "heures", "Dienststunden"],
+    "hours": ["hours", "heures", "Stunden"],
     "minutes": ["minutes", "minutes", "Minuten"],
     "seconds": ["seconds", "secondes", "Sekunden"],
     # !me (hooks_custom_chatcommands.py -> WARNING : circular import)
@@ -123,27 +137,27 @@ TRANSL = {
     # Various
     "average": ["average", "moyenne", "Durchschnitt"],
     # "averages": ["averages", "moyennes", "Durchschnittswerte"],
-    "avg": ["avg", "moy", "mit"],
+    "avg": ["avg", "moy", "avg"],
     "distribution": ["distribution", "distribution", "Verteilung"],
-    "players": ["players", "joueurs", "spieler"],
+    "players": ["players", "joueurs", "Spieler"],
     "score": ["score", "score", "Punktzahl"],
-    "stats": ["stats", "stats", "statistiken"],
-    "total": ["total", "total", "gesamt"],
+    "stats": ["stats", "stats", "Statistiken"],
+    "total": ["total", "total", "Summe"],
     # "totals": ["totals", "totaux", "Gesamtsummen"],
-    "tot": ["tot", "tot", "ges"],
+    "tot": ["tot", "tot", "sum"],
     # "difference": ["difference", "différence", "unterschied"],
-    "lastusedweapons": ["last used weapon(s)", "dernière(s) arme(s) utilisée(s)", "zuletzt verwendete Waffe(n)"],
-    "officers": ["officers", "officiers", "offiziere"],
+    "lastusedweapons": ["last used weapon(s)", "dernière(s) arme(s) utilisée(s)", "Zuletzt verwendete Waffe(n)"],
+    "officers": ["officers", "officiers", "Offiziere"],
     "punishment": ["punishment", "punition", "Bestrafung"],
-    "ratio": ["ratio", "ratio", "verhältnis"],
+    "ratio": ["ratio", "ratio", "Verhältnis"],
     "victim": ["victim", "victime", "Opfer"],
     # automod_forbid_role.py
-    "play_as": ["● Play as", "● A pris le rôle", "Spiele als"],
-    "engaged_action": ["● Engaged action :", "● Action souhaitée :", "● Engagierte Aktion"],
+    "play_as": ["● Play as", "● A pris le rôle", "Spiel als"],
+    "engaged_action": ["● Engaged action :", "● Action souhaitée :", "● Laufende Aktion"],
     "reason": ["● Reason :", "● Raison :", "● Ursache :"],
     "action_result": ["● Action result :", "● Résultat de l'action :", "● Ergebnis der Aktion"],
     "success": ["✅ Success", "✅ Réussite", "✅ Erfolg"],
-    "failure": ["❌ Failure", "❌ Échec", "❌ Versagen"],
+    "failure": ["❌ Failure", "❌ Échec", "❌ Fehler"],
     "unknown_action": ["❓ Misconfigured action", "❓ Action mal configurée", "❓ Falsch konfigurierte Aktion"],
     "testmode": ["🧪 Test mode (no action)", "🧪 Mode test (aucune action)", "🧪 Testmodus (keine Aktion)"]
 }
@@ -151,6 +165,41 @@ TRANSL = {
 
 # (End of configuration)
 # -----------------------------------------------------------------------------
+
+
+
+@contextmanager
+def enter_session(engine) -> Generator[Session, None, None]:
+    with Session(engine) as session:
+        session.begin()
+        try:
+            yield session
+        except:
+            session.rollback()
+            raise
+        else:
+            session.commit()
+
+class Base(DeclarativeBase):
+    pass
+
+class Watch_Balance_Message(Base):
+    __tablename__ = "stats_messages"
+
+    server_number: Mapped[int] = mapped_column(primary_key=True)
+    message_type: Mapped[str] = mapped_column(default="live", primary_key=True)
+    message_id: Mapped[int] = mapped_column(primary_key=True)
+    webhook: Mapped[str] = mapped_column(primary_key=True)
+
+def fetch_existing(
+    session: Session, server_number: str, webhook_url: str
+) -> Watch_Balance_Message | None:
+    stmt = (
+        select(Watch_Balance_Message)
+        .where(Watch_Balance_Message.server_number == server_number)
+        .where(Watch_Balance_Message.webhook == webhook_url)
+    )
+    return session.scalars(stmt).one_or_none()
 
 
 def bold_the_highest(
@@ -328,35 +377,108 @@ def green_to_red(
     hex_color = f"{red:02x}{green:02x}00"
     return hex_color
 
+def cleanup_orphaned_messages(
+    session: Session, server_number: int, webhook_url: str
+) -> None:
+    stmt = (
+        select(Watch_Balance_Message)
+        .where(Watch_Balance_Message.server_number == server_number)
+        .where(Watch_Balance_Message.webhook == webhook_url)
+    )
+    res = session.scalars(stmt).one_or_none()
+
+    if res:
+        session.delete(res)
+
+def send_or_edit_message(
+    session: Session,
+    webhook: discord.SyncWebhook,
+    embeds: list[discord.Embed],
+    server_number: int,
+    message_id: int | None = None,
+    edit: bool = True,
+):
+    logger = logging.getLogger('rcon')
+    try:
+        # Force creation of a new message if message ID isn't set
+        if not edit or message_id is None:
+            logger.info(f"Creating a new scorebot message")
+            message = webhook.send(embeds=embeds, wait=True)
+            return message.id
+        else:
+            webhook.edit_message(message_id, embeds=embeds)
+            return message_id
+    except NotFound as ex:
+        logger.error(
+            "Message with ID: %s in our records does not exist",
+            message_id,
+        )
+        cleanup_orphaned_messages(
+            session=session,
+            server_number=server_number,
+            webhook_url=webhook.url,
+        )
+        return None
+    except (HTTPException, RequestException, ConnectionError):
+        logger.exception(
+            "Temporary failure when trying to edit message ID: %s", message_id
+        )
+    except Exception as e:
+        logger.exception("Unable to edit message. Deleting record", e)
+        cleanup_orphaned_messages(
+            session=session,
+            server_number=server_number,
+            webhook_url=webhook.url,
+        )
+        return None
 
 def send_discord_embed(
-    bot_name: str,
-    embed_title: str,
-    embed_title_url: str,
-    steam_avatar_url: str,
-    embed_desc_txt: str,
-    embed_color,
-    discord_webhook: str
-):
+    embed: discord.Embed,
+    webhook: discord.Webhook,
+    engine):
     """
     Sends an embed message to Discord
     """
-    webhook = discord.SyncWebhook.from_url(discord_webhook)
-    embed = discord.Embed(
-        title=embed_title,
-        url=embed_title_url,
-        description=embed_desc_txt,
-        color=embed_color
-    )
-    embed.set_author(
-        name=bot_name,
-        url=DISCORD_EMBED_AUTHOR_URL,
-        icon_url=DISCORD_EMBED_AUTHOR_ICON_URL
-    )
-    embed.set_thumbnail(url=steam_avatar_url)
+    logger = logging.getLogger('rcon')
+    seen_messages: set[int] = set()
     embeds = []
     embeds.append(embed)
-    webhook.send(embeds=embeds, wait=True)
+    server_number = get_server_number()
+    with enter_session(engine) as session:
+        db_message = fetch_existing(
+            session=session,
+            server_number=server_number,
+            webhook_url=webhook.url,
+        )
+        if db_message:
+            message_id = db_message.message_id
+            if message_id not in seen_messages:
+                logger.info("Resuming with message_id %s" % message_id)
+                seen_messages.add(message_id)
+            message_id = send_or_edit_message(
+                session=session,
+                webhook=webhook,
+                embeds=embeds,
+                server_number=server_number,
+                message_id=message_id,
+                edit=True,
+            )
+        else:
+            message_id = send_or_edit_message(
+                session=session,
+                webhook=webhook,
+                embeds=embeds,
+                server_number=server_number,
+                message_id=None,
+                edit=False,
+            )
+            if message_id:
+                db_message = Watch_Balance_Message(
+                    server_number=server_number,
+                    message_id=message_id,
+                    webhook=webhook.url,
+                )
+                session.add(db_message)
 
 
 def team_view_stats(rcon: Rcon):
@@ -375,7 +497,7 @@ def team_view_stats(rcon: Rcon):
     try:
         get_team_view: dict = rcon.get_team_view()
     except Exception as error:
-        logger = logging.getLogger('rcon')
+        logger = logging.getLogger(__name__)
         logger.error("Command failed : get_team_view()\n%s", error)
         return (
             all_teams,

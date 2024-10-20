@@ -5,7 +5,7 @@ A plugin for HLL CRCON (see : https://github.com/MarechJ/hll_rcon_tool)
 that watches the teams players levels.
 (some strings are hardcoded in french, feel free to adapt them to your language)
 
-Source : https://github.com/ElGuillermo
+by https://github.com/ElGuillermo
 
 Feel free to use/modify/distribute, as long as you keep this note in your code
 """
@@ -21,9 +21,13 @@ from custom_tools.custom_common import (
     TRANSL,
     bold_the_highest,
     green_to_red,
-    team_view_stats
+    team_view_stats,
+    send_discord_embed,
+    Base
 )
-
+import os
+import pathlib
+from sqlalchemy import create_engine, select
 
 # Configuration (you must review/change these !)
 # -----------------------------------------------------------------------------
@@ -32,7 +36,7 @@ from custom_tools.custom_common import (
 
 # Dedicated Discord's channel webhook
 DISCORD_WEBHOOK = (
-    "https://discord.com/api/webhooks/..."
+    "https://discord.com/api/webhooks/1297331323517534262/jUXJenBIFGAL-4ItQ8LzxGx6aj6JMFUcEG10kwXn7uVGcVq8uF9RMM4dTi_WQZvVD8cO"
 )
 
 
@@ -170,7 +174,7 @@ def level_pop_distribution(
     return return_str
 
 
-def watch_balance_loop() -> None:
+def watch_balance_loop(engine) -> None:
     """
     Calls the function that gathers data,
     then calls the function to analyze it.
@@ -193,19 +197,21 @@ def watch_balance_loop() -> None:
 
     watch_balance(
         all_teams,
-        all_players
+        all_players,
+        engine
     )
 
 
 def watch_balance(
         all_teams: list,
-        all_players: list
+        all_players: list,
+        engine
 ) -> None:
     """
     Gets the data from team_view_stats(),
     process it, then display it in a Discord embed
     """
-    # Gather data : teams
+    # Gather data
     for team in all_teams:
         if "allies" in team:
             t1_count: int = team["allies"]["count"]
@@ -362,10 +368,7 @@ def watch_balance(
     embed.add_field(name=col1_embed_title, value=col1_embed_text, inline=True)
     embed.add_field(name=col2_embed_title, value=col2_embed_text, inline=True)
     embed.add_field(name=col3_embed_title, value=col3_embed_text, inline=True)
-    embeds = []
-    embeds.append(embed)
-    webhook.send(embeds=embeds, wait=True)
-
+    send_discord_embed(embed, webhook, engine)
 
 # Launching - initial pause : wait to be sure the CRCON is fully started
 sleep(60)
@@ -381,6 +384,10 @@ logger.info(
 
 # Launching and running (infinite loop)
 if __name__ == "__main__":
+    root_path = os.getenv("BALANCE_WATCH_DATA_PATH", "/data")
+    full_path = pathlib.Path(root_path) / pathlib.Path("watch_balance.db")
+    engine = create_engine(f"sqlite:///file:{full_path}?mode=rwc&uri=true", echo=False)
+    Base.metadata.create_all(engine)
     while True:
-        watch_balance_loop()
+        watch_balance_loop(engine)
         sleep(WATCH_INTERVAL_SECS)
