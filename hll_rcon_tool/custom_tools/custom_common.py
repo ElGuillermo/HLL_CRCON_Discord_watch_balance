@@ -9,14 +9,6 @@ Source : https://github.com/ElGuillermo
 Feel free to use/modify/distribute, as long as you keep this note in your code
 """
 
-"""
-Customized by LordofAgents from "Die Trümmertruppe" and "Hack Let Loose"
-Changes: 
-- Use the same message again, do not spam channel
-- Corrected german Translation
-"""
-
-
 import json
 import logging
 from datetime import datetime, timezone, timedelta
