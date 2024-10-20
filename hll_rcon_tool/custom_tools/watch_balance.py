@@ -36,7 +36,7 @@ from sqlalchemy import create_engine, select
 
 # Dedicated Discord's channel webhook
 DISCORD_WEBHOOK = (
-    "https://discord.com/api/webhooks/1297331323517534262/jUXJenBIFGAL-4ItQ8LzxGx6aj6JMFUcEG10kwXn7uVGcVq8uF9RMM4dTi_WQZvVD8cO"
+    "https://discord.com/api/webhooks/..."
 )
 
 
