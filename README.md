@@ -30,4 +30,8 @@ that watches the teams players levels.
   cd /root/hll_rcon_tool
   sh ./restart.sh
   ```
-Any change to the `/root/hll_rcon_tool/custom_tools/watch_balance.py` or `/root/hll_rcon_tool/custom_tools/custom_common.py` file will need a CRCON restart with the above command to be taken in account.
+Any change to these files :
+- `/root/hll_rcon_tool/custom_tools/watch_balance.py` ;
+- `/root/hll_rcon_tool/custom_tools/custom_common.py` ;
+- `/root/hll_rcon_tool/custom_tools/custom_translations.py` ;  
+...will need a CRCON restart (using `restart.sh` script) to be taken in account.
