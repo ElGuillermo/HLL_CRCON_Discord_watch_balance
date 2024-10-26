@@ -9,6 +9,7 @@ that watches the teams players levels.
 - Create a `custom_tools` folder in CRCON's root (`/root/hll_rcon_tool/`) ;
 - Copy `watch_balance.py` in `/root/hll_rcon_tool/custom_tools/` ;
 - Copy `custom_common.py` in `/root/hll_rcon_tool/custom_tools/` ;
+- Copy `custom_translations.py` in `/root/hll_rcon_tool/custom_tools/` ;
 - Copy `restart.sh` in CRCON's root (`/root/hll_rcon_tool/`) ;
 - Edit `/root/hll_rcon_tool/config/supervisord.conf` to add this bot section : 
   ```conf
