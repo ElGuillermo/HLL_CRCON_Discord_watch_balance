@@ -34,3 +34,12 @@ that watches the teams players levels.
 - `/root/hll_rcon_tool/custom_tools/custom_common.py` ;
 - `/root/hll_rcon_tool/custom_tools/custom_translations.py` ;  
 ...will require a CRCON restart (using `restart.sh` script) to be taken in account.
+
+⚠️ This plugin requires a modification of the `/root/hll_rcon_tool/config/supervisord.conf` file, which originates from the official CRCON depot.  
+If any CRCON upgrade implies updating this file, the usual upgrade procedure, as given in official CRCON instructions, will **FAIL**.  
+To successfully upgrade your CRCON, you'll have to revert the changes back, then reinstall this plugin.  
+To revert to the original file :  
+```shell
+cd /root/hll_rcon_tool
+git restore config/supervisord.conf
+```
