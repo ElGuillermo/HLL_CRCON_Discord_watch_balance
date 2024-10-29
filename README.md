@@ -33,4 +33,4 @@ that watches the teams players levels.
 - `/root/hll_rcon_tool/custom_tools/watch_balance.py` ;
 - `/root/hll_rcon_tool/custom_tools/custom_common.py` ;
 - `/root/hll_rcon_tool/custom_tools/custom_translations.py` ;  
-...will need a CRCON restart (using `restart.sh` script) to be taken in account.
+...will require a CRCON restart (using `restart.sh` script) to be taken in account.
