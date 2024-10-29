@@ -24,7 +24,6 @@ that watches the teams players levels.
 
 ## Config
 - Edit `/root/hll_rcon_tool/custom_tools/watch_balance.py` and set the parameters to your needs ;
-- Edit `/root/hll_rcon_tool/custom_tools/custom_common.py` and set the parameters to your needs ;
 - Restart CRCON :
   ```shell
   cd /root/hll_rcon_tool
