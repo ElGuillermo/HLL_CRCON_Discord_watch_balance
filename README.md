@@ -29,6 +29,8 @@ that watches the teams players levels.
   cd /root/hll_rcon_tool
   sh ./restart.sh
   ```
+
+## Limitations
 ⚠️ Any change to these files :
 - `/root/hll_rcon_tool/custom_tools/watch_balance.py` ;
 - `/root/hll_rcon_tool/custom_tools/custom_common.py` ;
