@@ -34,12 +34,12 @@ from custom_tools.custom_translations import TRANSL
 
 # Discord embeds strings translations
 # Available : 0 for english, 1 for french, 2 for german
-LANG = 1
+LANG = 0
 
 # Dedicated Discord's channel webhook
 # ServerNumber, Webhook, Enabled
 SERVER_CONFIG = [
-    ["https://discord.com/api/webhooks/1284357154773401671/kZP1Q5g3Bh8eWPLuUODnhoBZdZEIiQQo11BqLOp-XV6j0Z-WsaPXqtcBU03BWC9Ay8aw", True],  # Server 1
+    ["https://discord.com/api/webhooks/...", True],  # Server 1
     ["https://discord.com/api/webhooks/...", False],  # Server 2
     ["https://discord.com/api/webhooks/...", False],  # Server 3
     ["https://discord.com/api/webhooks/...", False],  # Server 4
