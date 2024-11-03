@@ -72,19 +72,6 @@ WEAPONS_ARTILLERY = [
 # (End of configuration)
 # -----------------------------------------------------------------------------
 
-@contextmanager
-def enter_session(engine) -> Generator[Session, None, None]:
-    with Session(engine) as session:
-        session.begin()
-        try:
-            yield session
-        except:
-            session.rollback()
-            raise
-        else:
-            session.commit()
-
-
 class Base(DeclarativeBase):
     pass
 
@@ -98,29 +85,65 @@ class Watch_Balance_Message(Base):
     webhook: Mapped[str] = mapped_column(primary_key=True)
 
 
-def fetch_existing(
-    session: Session, server_number: str, webhook_url: str
-) -> Watch_Balance_Message | None:
-    stmt = (
-        select(Watch_Balance_Message)
-        .where(Watch_Balance_Message.server_number == server_number)
-        .where(Watch_Balance_Message.webhook == webhook_url)
-    )
-    return session.scalars(stmt).one_or_none()
-
-
 def bold_the_highest(
     first_value: int,
     second_value: int
 ) -> str:
     """
-    Returns two strings, the highest formatted in bold
+    Returns two strings, the highest value formatted in bold
     """
     if first_value > second_value:
         return f"**{first_value}**", str(second_value)  # type: ignore
     if first_value < second_value:
         return str(first_value), f"**{second_value}**"  # type: ignore
     return str(first_value), str(second_value)  # type: ignore
+
+
+def cleanup_orphaned_messages(
+    session: Session, server_number: int, webhook_url: str
+) -> None:
+    """
+    Adapted from scorebot... Not sure about how it's working :/
+    """
+    stmt = (
+        select(Watch_Balance_Message)
+        .where(Watch_Balance_Message.server_number == server_number)
+        .where(Watch_Balance_Message.webhook == webhook_url)
+    )
+    res = session.scalars(stmt).one_or_none()
+
+    if res:
+        session.delete(res)
+
+
+@contextmanager
+def enter_session(engine) -> Generator[Session, None, None]:
+    """
+    Adapted from scorebot... Not sure about how it's working :/
+    """
+    with Session(engine) as session:
+        session.begin()
+        try:
+            yield session
+        except:
+            session.rollback()
+            raise
+        else:
+            session.commit()
+
+
+def fetch_existing(
+    session: Session, server_number: str, webhook_url: str
+) -> Watch_Balance_Message | None:
+    """
+    Adapted from scorebot... Not sure about how it's working :/
+    """
+    stmt = (
+        select(Watch_Balance_Message)
+        .where(Watch_Balance_Message.server_number == server_number)
+        .where(Watch_Balance_Message.webhook == webhook_url)
+    )
+    return session.scalars(stmt).one_or_none()
 
 
 def get_avatar_url(
@@ -137,6 +160,21 @@ def get_avatar_url(
         except Exception:
             return DEFAULT_AVATAR_STEAM
     return DEFAULT_AVATAR_STEAM
+
+
+def get_external_profile_url(
+    player_id: str,
+    player_name: str,
+) -> str:
+    """
+    Constructs the external profile url for Steam or GamePass
+    """
+    if len(player_id) == 17:
+        ext_profile_url = f"{STEAM_PROFILE_INFO_URL}{player_id}"
+    elif len(player_id) > 17:
+        gamepass_pseudo_url = player_name.replace(" ", "-")
+        ext_profile_url = f"{GAMEPASS_PROFILE_INFO_URL}{gamepass_pseudo_url}"
+    return ext_profile_url
 
 
 def get_steam_avatar(
@@ -168,19 +206,29 @@ def get_steam_avatar(
         return DEFAULT_AVATAR_STEAM
 
 
-def get_external_profile_url(
-    player_id: str,
-    player_name: str,
-) -> str:
+def green_to_red(
+        value: float,
+        min_value: float,
+        max_value: float
+    ) -> str:
     """
-    Constructs the external profile url for Steam or GamePass
+    Returns an string value
+    corresponding to a color
+    from plain green 00ff00 (value <= min_value)
+    to plain red ff0000 (value >= max_value)
+    You will have to convert it in the caller code :
+    ie for a decimal Discord embed color : int(hex_color, base=16)
     """
-    if len(player_id) == 17:
-        ext_profile_url = f"{STEAM_PROFILE_INFO_URL}{player_id}"
-    elif len(player_id) > 17:
-        gamepass_pseudo_url = player_name.replace(" ", "-")
-        ext_profile_url = f"{GAMEPASS_PROFILE_INFO_URL}{gamepass_pseudo_url}"
-    return ext_profile_url
+    if value < min_value:
+        value = min_value
+    elif value > max_value:
+        value = max_value
+    range_value = max_value - min_value
+    ratio = (value - min_value) / range_value
+    red = int(255 * ratio)
+    green = int(255 * (1 - ratio))
+    hex_color = f"{red:02x}{green:02x}00"
+    return hex_color
 
 
 def seconds_until_start(schedule) -> int:
@@ -260,43 +308,34 @@ def seconds_until_start(schedule) -> int:
     return return_value
 
 
-def green_to_red(
-        value: float,
-        min_value: float,
-        max_value: float
-    ) -> str:
+def send_discord_embed(
+    bot_name: str,
+    embed_title: str,
+    embed_title_url: str,
+    steam_avatar_url: str,
+    embed_desc_txt: str,
+    embed_color,
+    discord_webhook: str
+):
     """
-    Returns an string value
-    corresponding to a color
-    from plain green 00ff00 (value <= min_value)
-    to plain red ff0000 (value >= max_value)
-    You will have to convert it in the caller code :
-    ie for a decimal Discord embed color : int(hex_color, base=16)
+    Sends an embed message to Discord
     """
-    if value < min_value:
-        value = min_value
-    elif value > max_value:
-        value = max_value
-    range_value = max_value - min_value
-    ratio = (value - min_value) / range_value
-    red = int(255 * ratio)
-    green = int(255 * (1 - ratio))
-    hex_color = f"{red:02x}{green:02x}00"
-    return hex_color
-
-
-def cleanup_orphaned_messages(
-    session: Session, server_number: int, webhook_url: str
-) -> None:
-    stmt = (
-        select(Watch_Balance_Message)
-        .where(Watch_Balance_Message.server_number == server_number)
-        .where(Watch_Balance_Message.webhook == webhook_url)
+    webhook = discord.SyncWebhook.from_url(discord_webhook)
+    embed = discord.Embed(
+        title=embed_title,
+        url=embed_title_url,
+        description=embed_desc_txt,
+        color=embed_color
     )
-    res = session.scalars(stmt).one_or_none()
-
-    if res:
-        session.delete(res)
+    embed.set_author(
+        name=bot_name,
+        url=DISCORD_EMBED_AUTHOR_URL,
+        icon_url=DISCORD_EMBED_AUTHOR_ICON_URL
+    )
+    embed.set_thumbnail(url=steam_avatar_url)
+    embeds = []
+    embeds.append(embed)
+    webhook.send(embeds=embeds, wait=True)
 
 
 def send_or_edit_message(
@@ -340,36 +379,6 @@ def send_or_edit_message(
             webhook_url=webhook.url,
         )
         return None
-
-
-def send_discord_embed(
-    bot_name: str,
-    embed_title: str,
-    embed_title_url: str,
-    steam_avatar_url: str,
-    embed_desc_txt: str,
-    embed_color,
-    discord_webhook: str
-):
-    """
-    Sends an embed message to Discord
-    """
-    webhook = discord.SyncWebhook.from_url(discord_webhook)
-    embed = discord.Embed(
-        title=embed_title,
-        url=embed_title_url,
-        description=embed_desc_txt,
-        color=embed_color
-    )
-    embed.set_author(
-        name=bot_name,
-        url=DISCORD_EMBED_AUTHOR_URL,
-        icon_url=DISCORD_EMBED_AUTHOR_ICON_URL
-    )
-    embed.set_thumbnail(url=steam_avatar_url)
-    embeds = []
-    embeds.append(embed)
-    webhook.send(embeds=embeds, wait=True)
 
 
 def send_or_refresh_discord_embed(
