@@ -29,6 +29,7 @@ import pathlib
 from sqlalchemy import create_engine  # type:ignore
 from rcon.utils import get_server_number
 
+
 # Configuration (you must review/change these !)
 # -----------------------------------------------------------------------------
 
@@ -39,16 +40,16 @@ LANG = 0
 # Dedicated Discord's channel webhook
 # ServerNumber, Webhook, Enabled
 SERVER_CONFIG = [
-    ["https://discord.com/api/webhooks/...", True], # Server 1
-    ["https://discord.com/api/webhooks/...", False], # Server 2
-    ["https://discord.com/api/webhooks/...", False], # Server 3
-    ["https://discord.com/api/webhooks/...", False], # Server 4
-    ["https://discord.com/api/webhooks/...", False], # Server 5
-    ["https://discord.com/api/webhooks/...", False], # Server 6
-    ["https://discord.com/api/webhooks/...", False], # Server 7
-    ["https://discord.com/api/webhooks/...", False], # Server 8
-    ["https://discord.com/api/webhooks/...", False], # Server 9
-    ["https://discord.com/api/webhooks/...", False] # Server 10
+    ["https://discord.com/api/webhooks/...", True],  # Server 1
+    ["https://discord.com/api/webhooks/...", False],  # Server 2
+    ["https://discord.com/api/webhooks/...", False],  # Server 3
+    ["https://discord.com/api/webhooks/...", False],  # Server 4
+    ["https://discord.com/api/webhooks/...", False],  # Server 5
+    ["https://discord.com/api/webhooks/...", False],  # Server 6
+    ["https://discord.com/api/webhooks/...", False],  # Server 7
+    ["https://discord.com/api/webhooks/...", False],  # Server 8
+    ["https://discord.com/api/webhooks/...", False],  # Server 9
+    ["https://discord.com/api/webhooks/...", False]  # Server 10
 ]
 
 
@@ -64,7 +65,6 @@ WATCH_INTERVAL_SECS = 300
 
 # Bot name that will be displayed in CRCON "audit logs" and Discord embeds
 BOT_NAME = "CRCON_watch_balance"
-
 
 # (End of configuration)
 # -----------------------------------------------------------------------------
@@ -275,9 +275,7 @@ def watch_balance(
         t1_officers_lvl_avg: float = 0
         t2_officers_lvl_avg: float = 0
 
-    # Discord embed
-
-    # Discord embed title
+    # Discord embed : title
     avg_diff_ratio: float = max(t1_lvl_avg, t2_lvl_avg) / min(t1_lvl_avg, t2_lvl_avg)  # type: ignore
     embed_title: str = f"{TRANSL['ratio'][LANG]} : {str(round(avg_diff_ratio, 2))}"
 
