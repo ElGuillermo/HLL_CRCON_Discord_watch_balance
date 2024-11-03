@@ -19,11 +19,12 @@ from rcon.steam_utils import get_steam_api_key
 from rcon.user_config.rcon_server_settings import RconServerSettingsUserConfig
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 from contextlib import contextmanager
-from typing import Callable, Generator
-from sqlalchemy import create_engine, select
+from typing import Generator
+from sqlalchemy import select
 from rcon.utils import get_server_number
 from discord.errors import HTTPException, NotFound
 from requests.exceptions import ConnectionError, RequestException
+
 
 # Configuration (you don't have to change these)
 # ----------------------------------------------
@@ -71,8 +72,6 @@ WEAPONS_ARTILLERY = [
 # (End of configuration)
 # -----------------------------------------------------------------------------
 
-
-
 @contextmanager
 def enter_session(engine) -> Generator[Session, None, None]:
     with Session(engine) as session:
@@ -85,8 +84,10 @@ def enter_session(engine) -> Generator[Session, None, None]:
         else:
             session.commit()
 
+
 class Base(DeclarativeBase):
     pass
+
 
 class Watch_Balance_Message(Base):
     __tablename__ = "stats_messages"
@@ -95,6 +96,7 @@ class Watch_Balance_Message(Base):
     message_type: Mapped[str] = mapped_column(default="live", primary_key=True)
     message_id: Mapped[int] = mapped_column(primary_key=True)
     webhook: Mapped[str] = mapped_column(primary_key=True)
+
 
 def fetch_existing(
     session: Session, server_number: str, webhook_url: str
@@ -282,6 +284,7 @@ def green_to_red(
     hex_color = f"{red:02x}{green:02x}00"
     return hex_color
 
+
 def cleanup_orphaned_messages(
     session: Session, server_number: int, webhook_url: str
 ) -> None:
@@ -294,6 +297,7 @@ def cleanup_orphaned_messages(
 
     if res:
         session.delete(res)
+
 
 def send_or_edit_message(
     session: Session,
@@ -337,10 +341,42 @@ def send_or_edit_message(
         )
         return None
 
+
 def send_discord_embed(
-    embed: discord.Embed,
-    webhook: discord.Webhook,
-    engine):
+    bot_name: str,
+    embed_title: str,
+    embed_title_url: str,
+    steam_avatar_url: str,
+    embed_desc_txt: str,
+    embed_color,
+    discord_webhook: str
+):
+    """
+    Sends an embed message to Discord
+    """
+    webhook = discord.SyncWebhook.from_url(discord_webhook)
+    embed = discord.Embed(
+        title=embed_title,
+        url=embed_title_url,
+        description=embed_desc_txt,
+        color=embed_color
+    )
+    embed.set_author(
+        name=bot_name,
+        url=DISCORD_EMBED_AUTHOR_URL,
+        icon_url=DISCORD_EMBED_AUTHOR_ICON_URL
+    )
+    embed.set_thumbnail(url=steam_avatar_url)
+    embeds = []
+    embeds.append(embed)
+    webhook.send(embeds=embeds, wait=True)
+
+
+def send_or_refresh_discord_embed(
+        embed: discord.Embed,
+        webhook: discord.Webhook,
+        engine
+    ):
     """
     Sends an embed message to Discord
     """
@@ -364,7 +400,7 @@ def send_discord_embed(
                 session=session,
                 webhook=webhook,
                 embeds=embeds,
-                server_number=server_number,
+                server_number=int(server_number),
                 message_id=message_id,
                 edit=True,
             )
@@ -373,7 +409,7 @@ def send_discord_embed(
                 session=session,
                 webhook=webhook,
                 embeds=embeds,
-                server_number=server_number,
+                server_number=int(server_number),
                 message_id=None,
                 edit=False,
             )
