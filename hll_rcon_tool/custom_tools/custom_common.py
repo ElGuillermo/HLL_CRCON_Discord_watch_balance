@@ -25,15 +25,7 @@ from rcon.utils import get_server_number
 from discord.errors import HTTPException, NotFound
 from requests.exceptions import ConnectionError, RequestException
 
-# Configuration (you should review/change these !)
-# -----------------------------------------------------------------------------
-
-# Discord embeds strings translations
-# Available : 0 for english, 1 for french, 2 for german
-LANG = 0
-
-
-# Miscellaneous (you don't have to change these)
+# Configuration (you don't have to change these)
 # ----------------------------------------------
 
 # Discord : embed author icon

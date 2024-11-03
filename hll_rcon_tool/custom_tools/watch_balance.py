@@ -3,7 +3,6 @@ watch_balance.py
 
 A plugin for HLL CRCON (see : https://github.com/MarechJ/hll_rcon_tool)
 that watches the teams players levels.
-(some strings are hardcoded in french, feel free to adapt them to your language)
 
 by https://github.com/ElGuillermo
 
@@ -17,8 +16,6 @@ from rcon.settings import SERVER_INFO
 from custom_tools.custom_common import (
     DISCORD_EMBED_AUTHOR_URL,
     DISCORD_EMBED_AUTHOR_ICON_URL,
-    LANG,
-    TRANSL,
     bold_the_highest,
     green_to_red,
     team_view_stats,
@@ -34,7 +31,9 @@ from sqlalchemy import create_engine, select
 # Configuration (you must review/change these !)
 # -----------------------------------------------------------------------------
 
-# Don't forget you have some parameters to set in 'custom_common.py' too !
+# Discord embeds strings translations
+# Available : 0 for english, 1 for french, 2 for german
+LANG = 0
 
 # Dedicated Discord's channel webhook
 DISCORD_WEBHOOK = (
@@ -342,7 +341,7 @@ def watch_balance(
     # Log
     logger.info(
         f"{TRANSL['ratio'][LANG]} : {str(round(avg_diff_ratio, 2))}\n"
-        f"{TRANSL['players'][LANG]} : {TRANSL['allies'][LANG]} {str(round(t1_lvl_avg, 2))} ; {TRANSL['axis'][LANG]} {str(round(t2_lvl_avg, 2))}\n"
+        f"{TRANSL['players'][LANG]} : {TRANSL['allies'][LANG]} {str(round(t1_lvl_avg, 2))} ; {TRANSL['axis'][LANG]} {str(round(t2_lvl_avg, 2))} - "
         f"{TRANSL['officers'][LANG]} : {TRANSL['allies'][LANG]} {str(round(t1_officers_lvl_avg, 2))} ; {TRANSL['axis'][LANG]} {str(round(t2_officers_lvl_avg, 2))}"
     )
 

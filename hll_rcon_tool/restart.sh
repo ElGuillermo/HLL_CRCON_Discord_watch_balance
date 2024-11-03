@@ -1,27 +1,28 @@
 #!/bin/bash
 clear
-echo "Build new CRCON"
+echo "Build CRCON"
 echo "----------------------------------------"
 cd /root/hll_rcon_tool
 docker compose build
-echo "Done."
+echo "Build CRCON : done."
 
 # echo " "
-# echo "Stopping CRCON"
+# echo "Stop CRCON"
 # echo "----------------------------------------"
 # docker compose down
-# echo "Done."
+# echo "Stop CRCON : done."
 
 echo " "
-echo "Start new CRCON"
+echo "Start CRCON"
 echo "----------------------------------------"
 docker compose up -d --remove-orphans
-echo "Done."
+echo "Start CRCON : done."
 
-# echo "Cleaning"
-# echo "----------------------------------------"
-# docker volume rm $(docker volume ls -qf dangling=true)
+echo "Clean Docker files"
+echo "----------------------------------------"
+docker volume rm $(docker volume ls -qf dangling=true)
 # docker system prune -a -f
+echo "Clean Docker files : done."
 
 echo " "
 echo "Actual CRCON size :"
@@ -29,3 +30,7 @@ du -sh /root/hll_rcon_tool/
 echo "(included logs)"
 du -sh /root/hll_rcon_tool/logs
 echo "----------------------------------------"
+
+echo " "
+echo "Wait for a full minute before using CRCON interface"
+echo " "
