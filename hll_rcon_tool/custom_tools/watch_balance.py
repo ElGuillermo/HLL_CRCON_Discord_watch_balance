@@ -224,7 +224,7 @@ def watch_balance(
     process it, then display it in a Discord embed
     """
     # Check if enabled
-    if not SERVER_CONFIG[get_server_number - 1][1]:
+    if not SERVER_CONFIG[get_server_number() - 1][1]:
         return
     else:
         discord_webhook = SERVER_CONFIG[get_server_number - 1][0]
