@@ -28,6 +28,7 @@ from custom_tools.custom_common import (
 import os
 import pathlib
 from sqlalchemy import create_engine, select
+from custom_tools.custom_translations import TRANSL
 
 # Configuration (you must review/change these !)
 # -----------------------------------------------------------------------------
