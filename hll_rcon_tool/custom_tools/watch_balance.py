@@ -13,7 +13,7 @@ from time import sleep
 import discord  # type: ignore
 from rcon.rcon import Rcon
 from rcon.settings import SERVER_INFO
-from hll_rcon_tool.custom_tools.custom_common import (
+from custom_tools.custom_common import (
     DISCORD_EMBED_AUTHOR_URL,
     DISCORD_EMBED_AUTHOR_ICON_URL,
     bold_the_highest,
