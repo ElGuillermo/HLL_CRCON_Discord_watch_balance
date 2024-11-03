@@ -10,9 +10,13 @@ Feel free to use/modify/distribute, as long as you keep this note in your code
 """
 import logging
 from time import sleep
+import os
+import pathlib
 import discord  # type: ignore
+from sqlalchemy import create_engine  # type:ignore
 from rcon.rcon import Rcon
 from rcon.settings import SERVER_INFO
+from rcon.utils import get_server_number
 from custom_tools.custom_common import (
     DISCORD_EMBED_AUTHOR_URL,
     DISCORD_EMBED_AUTHOR_ICON_URL,
@@ -24,23 +28,18 @@ from custom_tools.custom_common import (
 )
 from custom_tools.custom_translations import TRANSL
 
-import os
-import pathlib
-from sqlalchemy import create_engine  # type:ignore
-from rcon.utils import get_server_number
-
 
 # Configuration (you must review/change these !)
 # -----------------------------------------------------------------------------
 
 # Discord embeds strings translations
 # Available : 0 for english, 1 for french, 2 for german
-LANG = 0
+LANG = 1
 
 # Dedicated Discord's channel webhook
 # ServerNumber, Webhook, Enabled
 SERVER_CONFIG = [
-    ["https://discord.com/api/webhooks/...", True],  # Server 1
+    ["https://discord.com/api/webhooks/1284357154773401671/kZP1Q5g3Bh8eWPLuUODnhoBZdZEIiQQo11BqLOp-XV6j0Z-WsaPXqtcBU03BWC9Ay8aw", True],  # Server 1
     ["https://discord.com/api/webhooks/...", False],  # Server 2
     ["https://discord.com/api/webhooks/...", False],  # Server 3
     ["https://discord.com/api/webhooks/...", False],  # Server 4
@@ -65,6 +64,7 @@ WATCH_INTERVAL_SECS = 300
 
 # Bot name that will be displayed in CRCON "audit logs" and Discord embeds
 BOT_NAME = "CRCON_watch_balance"
+
 
 # (End of configuration)
 # -----------------------------------------------------------------------------
@@ -227,8 +227,7 @@ def watch_balance(
     server_number = int(get_server_number())
     if not SERVER_CONFIG[server_number - 1][1]:
         return
-    else:
-        discord_webhook = SERVER_CONFIG[server_number - 1][0]
+    discord_webhook = SERVER_CONFIG[server_number - 1][0]
 
     # Gather data
     for team in all_teams:
@@ -275,7 +274,9 @@ def watch_balance(
         t1_officers_lvl_avg: float = 0
         t2_officers_lvl_avg: float = 0
 
-    # Discord embed : title
+    # Discord embed
+
+    # Discord embed title
     avg_diff_ratio: float = max(t1_lvl_avg, t2_lvl_avg) / min(t1_lvl_avg, t2_lvl_avg)  # type: ignore
     embed_title: str = f"{TRANSL['ratio'][LANG]} : {str(round(avg_diff_ratio, 2))}"
 
@@ -356,9 +357,20 @@ def watch_balance(
 
     # Log
     logger.info(
-        f"{TRANSL['ratio'][LANG]} : {str(round(avg_diff_ratio, 2))}\n"
-        f"{TRANSL['players'][LANG]} : {TRANSL['allies'][LANG]} {str(round(t1_lvl_avg, 2))} ; {TRANSL['axis'][LANG]} {str(round(t2_lvl_avg, 2))} - "
-        f"{TRANSL['officers'][LANG]} : {TRANSL['allies'][LANG]} {str(round(t1_officers_lvl_avg, 2))} ; {TRANSL['axis'][LANG]} {str(round(t2_officers_lvl_avg, 2))}"
+        # ratio : 1.33 - joueurs : (Alliés) 90.62 ; (Axe) 120.96 - officiers : (Alliés) 111.22 ; (Axe) 126.15
+        "%s : %s - %s : (%s) %s ; (%s) %s - %s : (%s) %s ; (%s) %s",
+            TRANSL['ratio'][LANG],
+            str(round(avg_diff_ratio, 2)),
+            TRANSL['players'][LANG],
+            TRANSL['allies'][LANG],
+            str(round(t1_lvl_avg, 2)),
+            TRANSL['axis'][LANG],
+            str(round(t2_lvl_avg, 2)),
+            TRANSL['officers'][LANG],
+            TRANSL['allies'][LANG],
+            str(round(t1_officers_lvl_avg, 2)),
+            TRANSL['axis'][LANG],
+            str(round(t2_officers_lvl_avg, 2))
     )
 
     # Create and send discord embed
