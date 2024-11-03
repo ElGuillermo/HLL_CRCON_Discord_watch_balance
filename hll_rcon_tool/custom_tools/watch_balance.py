@@ -13,20 +13,20 @@ from time import sleep
 import discord  # type: ignore
 from rcon.rcon import Rcon
 from rcon.settings import SERVER_INFO
-from custom_tools.custom_common import (
+from hll_rcon_tool.custom_tools.custom_common import (
     DISCORD_EMBED_AUTHOR_URL,
     DISCORD_EMBED_AUTHOR_ICON_URL,
     bold_the_highest,
     green_to_red,
     team_view_stats,
-    send_discord_embed,
+    send_or_refresh_discord_embed,
     Base
 )
 from custom_tools.custom_translations import TRANSL
 
 import os
 import pathlib
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine  # type:ignore
 from rcon.utils import get_server_number
 
 # Configuration (you must review/change these !)
@@ -387,7 +387,9 @@ def watch_balance(
     embed.add_field(name=col1_embed_title, value=col1_embed_text, inline=True)
     embed.add_field(name=col2_embed_title, value=col2_embed_text, inline=True)
     embed.add_field(name=col3_embed_title, value=col3_embed_text, inline=True)
-    send_discord_embed(embed, webhook, engine)
+
+    send_or_refresh_discord_embed(embed, webhook, engine)
+
 
 # Launching - initial pause : wait to be sure the CRCON is fully started
 sleep(60)
