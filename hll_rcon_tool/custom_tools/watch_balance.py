@@ -224,10 +224,11 @@ def watch_balance(
     process it, then display it in a Discord embed
     """
     # Check if enabled
-    if not SERVER_CONFIG[get_server_number() - 1][1]:
+    server_number = int(get_server_number())
+    if not SERVER_CONFIG[server_number - 1][1]:
         return
     else:
-        discord_webhook = SERVER_CONFIG[get_server_number - 1][0]
+        discord_webhook = SERVER_CONFIG[server_number - 1][0]
 
     # Gather data
     for team in all_teams:
