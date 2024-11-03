@@ -4,7 +4,7 @@ watch_balance.py
 A plugin for HLL CRCON (see : https://github.com/MarechJ/hll_rcon_tool)
 that watches the teams players levels.
 
-Source : https://github.com/ElGuillermo
+by https://github.com/ElGuillermo
 
 Feel free to use/modify/distribute, as long as you keep this note in your code
 """
@@ -18,10 +18,16 @@ from custom_tools.custom_common import (
     DISCORD_EMBED_AUTHOR_ICON_URL,
     bold_the_highest,
     green_to_red,
-    team_view_stats
+    team_view_stats,
+    send_discord_embed,
+    Base
 )
 from custom_tools.custom_translations import TRANSL
 
+import os
+import pathlib
+from sqlalchemy import create_engine, select
+from rcon.utils import get_server_number
 
 # Configuration (you must review/change these !)
 # -----------------------------------------------------------------------------
@@ -31,9 +37,19 @@ from custom_tools.custom_translations import TRANSL
 LANG = 0
 
 # Dedicated Discord's channel webhook
-DISCORD_WEBHOOK = (
-    "https://discord.com/api/webhooks/..."
-)
+# ServerNumber, Webhook, Enabled
+SERVER_CONFIG = [
+    ["https://discord.com/api/webhooks/...", True], # Server 1
+    ["https://discord.com/api/webhooks/...", False], # Server 2
+    ["https://discord.com/api/webhooks/...", False], # Server 3
+    ["https://discord.com/api/webhooks/...", False], # Server 4
+    ["https://discord.com/api/webhooks/...", False], # Server 5
+    ["https://discord.com/api/webhooks/...", False], # Server 6
+    ["https://discord.com/api/webhooks/...", False], # Server 7
+    ["https://discord.com/api/webhooks/...", False], # Server 8
+    ["https://discord.com/api/webhooks/...", False], # Server 9
+    ["https://discord.com/api/webhooks/...", False] # Server 10
+]
 
 
 # Miscellaneous (you don't have to change these)
@@ -170,7 +186,7 @@ def level_pop_distribution(
     return return_str
 
 
-def watch_balance_loop() -> None:
+def watch_balance_loop(engine) -> None:
     """
     Calls the function that gathers data,
     then calls the function to analyze it.
@@ -193,19 +209,28 @@ def watch_balance_loop() -> None:
 
     watch_balance(
         all_teams,
-        all_players
+        all_players,
+        engine
     )
 
 
 def watch_balance(
         all_teams: list,
-        all_players: list
+        all_players: list,
+        engine
 ) -> None:
     """
     Gets the data from team_view_stats(),
     process it, then display it in a Discord embed
     """
-    # Gather data : teams
+    # Check if enabled
+    server_number = int(get_server_number())
+    if not SERVER_CONFIG[server_number - 1][1]:
+        return
+    else:
+        discord_webhook = SERVER_CONFIG[server_number - 1][0]
+
+    # Gather data
     for team in all_teams:
         if "allies" in team:
             t1_count: int = team["allies"]["count"]
@@ -339,7 +364,7 @@ def watch_balance(
     )
 
     # Create and send discord embed
-    webhook = discord.SyncWebhook.from_url(DISCORD_WEBHOOK)
+    webhook = discord.SyncWebhook.from_url(discord_webhook)
     embed_color = green_to_red(
         value=avg_diff_ratio,
         min_value=1,
@@ -362,10 +387,7 @@ def watch_balance(
     embed.add_field(name=col1_embed_title, value=col1_embed_text, inline=True)
     embed.add_field(name=col2_embed_title, value=col2_embed_text, inline=True)
     embed.add_field(name=col3_embed_title, value=col3_embed_text, inline=True)
-    embeds = []
-    embeds.append(embed)
-    webhook.send(embeds=embeds, wait=True)
-
+    send_discord_embed(embed, webhook, engine)
 
 # Launching - initial pause : wait to be sure the CRCON is fully started
 sleep(60)
@@ -381,6 +403,10 @@ logger.info(
 
 # Launching and running (infinite loop)
 if __name__ == "__main__":
+    root_path = os.getenv("BALANCE_WATCH_DATA_PATH", "/data")
+    full_path = pathlib.Path(root_path) / pathlib.Path("watch_balance.db")
+    engine = create_engine(f"sqlite:///file:{full_path}?mode=rwc&uri=true", echo=False)
+    Base.metadata.create_all(engine)
     while True:
-        watch_balance_loop()
+        watch_balance_loop(engine)
         sleep(WATCH_INTERVAL_SECS)
