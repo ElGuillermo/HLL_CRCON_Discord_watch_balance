@@ -27,6 +27,7 @@ from custom_tools.custom_translations import TRANSL
 import os
 import pathlib
 from sqlalchemy import create_engine, select
+from rcon.utils import get_server_number
 
 # Configuration (you must review/change these !)
 # -----------------------------------------------------------------------------
@@ -36,9 +37,19 @@ from sqlalchemy import create_engine, select
 LANG = 0
 
 # Dedicated Discord's channel webhook
-DISCORD_WEBHOOK = (
-    "https://discord.com/api/webhooks/..."
-)
+# ServerNumber, Webhook, Enabled
+SERVER_CONFIG = [
+    ["https://discord.com/api/webhooks/...", True], # Server 1
+    ["https://discord.com/api/webhooks/...", False], # Server 2
+    ["https://discord.com/api/webhooks/...", False], # Server 3
+    ["https://discord.com/api/webhooks/...", False], # Server 4
+    ["https://discord.com/api/webhooks/...", False], # Server 5
+    ["https://discord.com/api/webhooks/...", False], # Server 6
+    ["https://discord.com/api/webhooks/...", False], # Server 7
+    ["https://discord.com/api/webhooks/...", False], # Server 8
+    ["https://discord.com/api/webhooks/...", False], # Server 9
+    ["https://discord.com/api/webhooks/...", False] # Server 10
+]
 
 
 # Miscellaneous (you don't have to change these)
@@ -212,6 +223,12 @@ def watch_balance(
     Gets the data from team_view_stats(),
     process it, then display it in a Discord embed
     """
+    # Check if enabled
+    if not SERVER_CONFIG[get_server_number - 1][1]:
+        return
+    else:
+        discord_webhook = SERVER_CONFIG[get_server_number - 1][0]
+
     # Gather data
     for team in all_teams:
         if "allies" in team:
@@ -346,7 +363,7 @@ def watch_balance(
     )
 
     # Create and send discord embed
-    webhook = discord.SyncWebhook.from_url(DISCORD_WEBHOOK)
+    webhook = discord.SyncWebhook.from_url(discord_webhook)
     embed_color = green_to_red(
         value=avg_diff_ratio,
         min_value=1,
