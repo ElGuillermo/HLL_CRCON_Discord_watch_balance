@@ -14,8 +14,8 @@ import logging
 from datetime import datetime, timezone, timedelta
 from contextlib import contextmanager
 from typing import Generator
-import requests  # type: ignore
-import discord  # type: ignore
+import requests
+import discord
 from discord.errors import HTTPException, NotFound
 from requests.exceptions import ConnectionError, RequestException
 from sqlalchemy import select
@@ -31,19 +31,15 @@ from rcon.utils import get_server_number
 
 # Discord : embed author icon
 DISCORD_EMBED_AUTHOR_ICON_URL = (
-    "https://styles.redditmedia.com/"
-    "t5_3ejz4/styles/communityIcon_x51js3a1fr0b1.png"
+    "https://styles.redditmedia.com/t5_3ejz4/styles/communityIcon_x51js3a1fr0b1.png"
 )
 
 # Discord : default avatars
 DEFAULT_AVATAR_STEAM = (
-    "https://steamcdn-a.akamaihd.net/"
-    "steamcommunity/public/images/avatars/"
-    "b5/b5bd56c1aa4644a474a2e4972be27ef9e82e517e_medium.jpg"
+    "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/b5/b5bd56c1aa4644a474a2e4972be27ef9e82e517e_medium.jpg"
 )
 DEFAULT_AVATAR_GAMEPASS = (
-    "https://sc.filehippo.net/images/t_app-logo-l,f_auto,dpr_auto/p/"
-    "2cf512ee-a9da-11e8-8bdc-02420a000abe/3169937124/xbox-game-pass-logo"
+    "https://sc.filehippo.net/images/t_app-logo-l,f_auto,dpr_auto/p/2cf512ee-a9da-11e8-8bdc-02420a000abe/3169937124/xbox-game-pass-logo"
 )
 
 # Discord : external profile infos urls
@@ -104,7 +100,7 @@ def bold_the_highest(
     return str(first_value), str(second_value)  # type: ignore
 
 
-def cleanup_orphaned_messages(
+def discord_embed_selfrefresh_cleanup_orphaned_messages(
     session: Session, server_number: int, webhook_url: str
 ) -> None:
     """
@@ -122,7 +118,7 @@ def cleanup_orphaned_messages(
 
 
 @contextmanager
-def enter_session(engine) -> Generator[Session, None, None]:
+def discord_embed_selfrefresh_enter_session(engine) -> Generator[Session, None, None]:
     """
     Adapted from scorebot... Not sure about how it's working :/
     """
@@ -137,7 +133,7 @@ def enter_session(engine) -> Generator[Session, None, None]:
             session.commit()
 
 
-def fetch_existing(
+def discord_embed_selfrefresh_fetch_existing(
     session: Session, server_number: str, webhook_url: str
 ) -> WatchBalanceMessage | None:
     """
@@ -343,7 +339,7 @@ def send_discord_embed(
     webhook.send(embeds=embeds, wait=True)
 
 
-def send_or_edit_message(
+def discord_embed_selfrefresh_sendoredit(
     session: Session,
     webhook: discord.SyncWebhook,
     embeds: list[discord.Embed],
@@ -358,29 +354,31 @@ def send_or_edit_message(
     try:
         # Force creation of a new message if message ID isn't set
         if not edit or message_id is None:
-            logger.info("Creating a new scorebot message")
+            logger.info("Creating a new message")
             message = webhook.send(embeds=embeds, wait=True)
             return message.id
         webhook.edit_message(message_id, embeds=embeds)
         return message_id
+    # The message can't be found - delete its session
     except NotFound:
         logger.error(
-            "Message with ID: %s in our records does not exist",
-            message_id,
+            "Message with ID: %s in our records does not exist", message_id
         )
-        cleanup_orphaned_messages(
+        discord_embed_selfrefresh_cleanup_orphaned_messages(
             session=session,
             server_number=server_number,
             webhook_url=webhook.url,
         )
         return None
+    # The message can't be reached at this time
     except (HTTPException, RequestException, ConnectionError):
         logger.exception(
             "Temporary failure when trying to edit message ID: %s", message_id
         )
+    # The message can't be edited - delete its session
     except Exception as error:
         logger.exception("Unable to edit message. Deleting record. Error : %s", error)
-        cleanup_orphaned_messages(
+        discord_embed_selfrefresh_cleanup_orphaned_messages(
             session=session,
             server_number=server_number,
             webhook_url=webhook.url,
@@ -388,31 +386,40 @@ def send_or_edit_message(
         return None
 
 
-def send_or_refresh_discord_embed(
+def discord_embed_send(
         embed: discord.Embed,
         webhook: discord.Webhook,
         engine
     ):
     """
     Sends an embed message to Discord
+    - one-time embed if no "engine" set
+    - self-refreshing embed if "engine" set
     """
     logger = logging.getLogger('rcon')
     seen_messages: set[int] = set()
     embeds = []
     embeds.append(embed)
+
+    # Normal embed
+    if engine is None:
+        pass
+
+    # Self-refreshing embed
     server_number = get_server_number()
-    with enter_session(engine) as session:
-        db_message = fetch_existing(
+    with discord_embed_selfrefresh_enter_session(engine) as session:
+        db_message = discord_embed_selfrefresh_fetch_existing(
             session=session,
             server_number=server_number,
             webhook_url=webhook.url,
         )
+        # A previous message using this webhook exists in database
         if db_message:
             message_id = db_message.message_id
             if message_id not in seen_messages:
                 logger.info("Resuming with message_id %s", message_id)
                 seen_messages.add(message_id)
-            message_id = send_or_edit_message(
+            message_id = discord_embed_selfrefresh_sendoredit(
                 session=session,
                 webhook=webhook,
                 embeds=embeds,
@@ -420,8 +427,9 @@ def send_or_refresh_discord_embed(
                 message_id=message_id,
                 edit=True,
             )
+        # There is no previous message using this webhook in database
         else:
-            message_id = send_or_edit_message(
+            message_id = discord_embed_selfrefresh_sendoredit(
                 session=session,
                 webhook=webhook,
                 embeds=embeds,
