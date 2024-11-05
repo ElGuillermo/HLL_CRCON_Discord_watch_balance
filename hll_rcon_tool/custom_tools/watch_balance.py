@@ -23,7 +23,7 @@ from custom_tools.custom_common import (
     bold_the_highest,
     green_to_red,
     team_view_stats,
-    send_or_refresh_discord_embed,
+    discord_embed_send,
     Base
 )
 from custom_tools.custom_translations import TRANSL
@@ -398,7 +398,7 @@ def watch_balance(
     embed.add_field(name=col2_embed_title, value=col2_embed_text, inline=True)
     embed.add_field(name=col3_embed_title, value=col3_embed_text, inline=True)
 
-    send_or_refresh_discord_embed(embed, webhook, engine)
+    discord_embed_send(embed, webhook, engine)
 
 
 # Launching - initial pause : wait to be sure the CRCON is fully started
