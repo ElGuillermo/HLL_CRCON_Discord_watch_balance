@@ -1,19 +1,20 @@
 """
 watch_balance.py
 
-A plugin for HLL CRCON (see : https://github.com/MarechJ/hll_rcon_tool)
+A plugin for HLL CRCON (https://github.com/MarechJ/hll_rcon_tool)
 that watches the teams players levels.
 
-by https://github.com/ElGuillermo
+Source : https://github.com/ElGuillermo
 
 Feel free to use/modify/distribute, as long as you keep this note in your code
 """
+
 import logging
 from time import sleep
 import os
 import pathlib
-import discord  # type: ignore
-from sqlalchemy import create_engine  # type:ignore
+import discord
+from sqlalchemy import create_engine
 from rcon.rcon import Rcon
 from rcon.settings import SERVER_INFO
 from rcon.utils import get_server_number
