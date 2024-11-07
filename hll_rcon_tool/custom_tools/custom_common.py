@@ -1,7 +1,7 @@
 """
 custom_common.py
 
-Common tools and parameters set for HLL CRCON custom plugins
+Common tools and parameters for HLL CRCON custom plugins
 (see : https://github.com/MarechJ/hll_rcon_tool)
 
 Source : https://github.com/ElGuillermo
@@ -291,14 +291,20 @@ def seconds_until_start(schedule) -> int:
 
     # Evaluate the seconds to wait until the next activity time
     if (
-        today_start_hour - now.hour > 0 or (
-            today_start_hour - now.hour == 0 and today_start_minute - now.minute > 0
+        today_start_hour - now.hour > 0
+        or (
+            today_start_hour - now.hour == 0
+            and today_start_minute - now.minute > 0
         )
     ):
         return_value = int((today_start_dt - now).total_seconds())
     elif (
-        today_start_hour - now.hour < 0 and (
-            (today_end_hour - now.hour == 0 and today_end_minute - now.minute <= 0)
+        today_start_hour - now.hour < 0
+        and (
+            (
+                today_end_hour - now.hour == 0
+                and today_end_minute - now.minute <= 0
+            )
             or today_end_hour - now.hour < 0
         )
     ):
@@ -307,36 +313,6 @@ def seconds_until_start(schedule) -> int:
         return_value = 0
 
     return return_value
-
-
-def send_discord_embed(
-    bot_name: str,
-    embed_title: str,
-    embed_title_url: str,
-    steam_avatar_url: str,
-    embed_desc_txt: str,
-    embed_color,
-    discord_webhook: str
-):
-    """
-    Sends an embed message to Discord
-    """
-    webhook = discord.SyncWebhook.from_url(discord_webhook)
-    embed = discord.Embed(
-        title=embed_title,
-        url=embed_title_url,
-        description=embed_desc_txt,
-        color=embed_color
-    )
-    embed.set_author(
-        name=bot_name,
-        url=DISCORD_EMBED_AUTHOR_URL,
-        icon_url=DISCORD_EMBED_AUTHOR_ICON_URL
-    )
-    embed.set_thumbnail(url=steam_avatar_url)
-    embeds = []
-    embeds.append(embed)
-    webhook.send(embeds=embeds, wait=True)
 
 
 def discord_embed_selfrefresh_sendoredit(
@@ -351,14 +327,15 @@ def discord_embed_selfrefresh_sendoredit(
     Adapted from scorebot... Not sure about how it's working :/
     """
     logger = logging.getLogger('rcon')
+    # Force creation of a new message if message ID isn't set
     try:
-        # Force creation of a new message if message ID isn't set
         if not edit or message_id is None:
             logger.info("Creating a new message")
             message = webhook.send(embeds=embeds, wait=True)
             return message.id
         webhook.edit_message(message_id, embeds=embeds)
         return message_id
+
     # The message can't be found - delete its session
     except NotFound:
         logger.error(
@@ -370,11 +347,13 @@ def discord_embed_selfrefresh_sendoredit(
             webhook_url=webhook.url,
         )
         return None
+
     # The message can't be reached at this time
     except (HTTPException, RequestException, ConnectionError):
         logger.exception(
             "Temporary failure when trying to edit message ID: %s", message_id
         )
+
     # The message can't be edited - delete its session
     except Exception as error:
         logger.exception("Unable to edit message. Deleting record. Error : %s", error)
@@ -389,7 +368,7 @@ def discord_embed_selfrefresh_sendoredit(
 def discord_embed_send(
         embed: discord.Embed,
         webhook: discord.Webhook,
-        engine
+        engine = None
     ):
     """
     Sends an embed message to Discord
@@ -403,7 +382,10 @@ def discord_embed_send(
 
     # Normal embed
     if engine is None:
-        pass
+        embeds = []
+        embeds.append(embed)
+        webhook.send(embeds=embeds, wait=True)
+        return
 
     # Self-refreshing embed
     server_number = get_server_number()
@@ -413,6 +395,7 @@ def discord_embed_send(
             server_number=server_number,
             webhook_url=webhook.url,
         )
+
         # A previous message using this webhook exists in database
         if db_message:
             message_id = db_message.message_id
@@ -427,6 +410,7 @@ def discord_embed_send(
                 message_id=message_id,
                 edit=True,
             )
+
         # There is no previous message using this webhook in database
         else:
             message_id = discord_embed_selfrefresh_sendoredit(
