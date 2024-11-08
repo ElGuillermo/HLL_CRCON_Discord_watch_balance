@@ -1,8 +1,9 @@
 """
-custom_translations.py
+common_translations
 
-Common translation set for HLL CRCON custom plugins
-(see : https://github.com/MarechJ/hll_rcon_tool)
+Common translation set
+for HLL CRCON (https://github.com/MarechJ/hll_rcon_tool)
+custom plugins
 
 Source : https://github.com/ElGuillermo
 
