@@ -1,5 +1,5 @@
 """
-watch_balance.py
+watch_balance
 
 A plugin for HLL CRCON (https://github.com/MarechJ/hll_rcon_tool)
 that watches the teams players levels.
@@ -18,7 +18,7 @@ from sqlalchemy import create_engine
 from rcon.rcon import Rcon
 from rcon.settings import SERVER_INFO
 from rcon.utils import get_server_number
-from custom_tools.custom_common import (
+from custom_tools.common_functions import (
     DISCORD_EMBED_AUTHOR_URL,
     DISCORD_EMBED_AUTHOR_ICON_URL,
     bold_the_highest,
@@ -27,48 +27,8 @@ from custom_tools.custom_common import (
     discord_embed_send,
     Base
 )
-from custom_tools.custom_translations import TRANSL
-
-
-# Configuration (you must review/change these !)
-# -----------------------------------------------------------------------------
-
-# Discord embeds strings translations
-# Available : 0 for english, 1 for french, 2 for german
-LANG = 0
-
-# Dedicated Discord's channel webhook
-# ServerNumber, Webhook, Enabled
-SERVER_CONFIG = [
-    ["https://discord.com/api/webhooks/...", True],  # Server 1
-    ["https://discord.com/api/webhooks/...", False],  # Server 2
-    ["https://discord.com/api/webhooks/...", False],  # Server 3
-    ["https://discord.com/api/webhooks/...", False],  # Server 4
-    ["https://discord.com/api/webhooks/...", False],  # Server 5
-    ["https://discord.com/api/webhooks/...", False],  # Server 6
-    ["https://discord.com/api/webhooks/...", False],  # Server 7
-    ["https://discord.com/api/webhooks/...", False],  # Server 8
-    ["https://discord.com/api/webhooks/...", False],  # Server 9
-    ["https://discord.com/api/webhooks/...", False]  # Server 10
-]
-
-
-# Miscellaneous (you don't have to change these)
-# ----------------------------------------------
-
-# The interval between watch turns (in seconds)
-# Recommended : as the stats must be gathered for all the players,
-#               requiring some amount of data from the game server,
-#               you may encounter slowdowns if done too frequently.
-# Default : 300
-WATCH_INTERVAL_SECS = 300
-
-# Bot name that will be displayed in CRCON "audit logs" and Discord embeds
-BOT_NAME = "CRCON_watch_balance"
-
-
-# (End of configuration)
-# -----------------------------------------------------------------------------
+from custom_tools.common_translations import TRANSL
+from custom_tools.watch_balance_config import *
 
 
 def team_avg(
