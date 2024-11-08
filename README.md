@@ -6,11 +6,12 @@ that watches the teams players levels.
 ![375489638-1b9f8fec-7f27-49a0-a4a7-a825fbbf174b](https://github.com/user-attachments/assets/2357b6a2-3a79-492b-8d9c-c1aaff9abf33)
 
 ## Install
-- Create a `custom_tools` folder in CRCON's root (`/root/hll_rcon_tool/`) ;
-- Copy `watch_balance.py` in `/root/hll_rcon_tool/custom_tools/` ;
-- Copy `custom_common.py` in `/root/hll_rcon_tool/custom_tools/` ;
-- Copy `custom_translations.py` in `/root/hll_rcon_tool/custom_tools/` ;
 - Copy `restart.sh` in CRCON's root (`/root/hll_rcon_tool/`) ;
+- Create a `custom_tools` folder in CRCON's root (`/root/hll_rcon_tool/`) ;
+- Copy these files into the newly created `/root/hll_rcon_tool/custom_tools` folder :
+  - `custom_common.py`
+  - `custom_translations.py`
+  - `watch_balance.py`
 - Edit `/root/hll_rcon_tool/config/supervisord.conf` to add this bot section : 
   ```conf
   [program:watch_balance]
@@ -23,7 +24,7 @@ that watches the teams players levels.
   ```
 
 ## Config
-- Edit `/root/hll_rcon_tool/custom_tools/watch_balance.py` and set the parameters to your needs ;
+- Edit `/root/hll_rcon_tool/custom_tools/watch_balance_config.py` and set the parameters to your needs ;
 - Restart CRCON :
   ```shell
   cd /root/hll_rcon_tool
@@ -31,11 +32,10 @@ that watches the teams players levels.
   ```
 
 ## Limitations
-⚠️ Any change to these files :
-- `/root/hll_rcon_tool/custom_tools/watch_balance.py` ;
-- `/root/hll_rcon_tool/custom_tools/custom_common.py` ;
-- `/root/hll_rcon_tool/custom_tools/custom_translations.py` ;  
-...will require a CRCON restart (using `restart.sh` script) to be taken in account.
+⚠️ Any change to these files requires a CRCON rebuild and restart (using the `restart.sh` script) to be taken in account :
+- `/root/hll_rcon_tool/custom_tools/custom_common.py`
+- `/root/hll_rcon_tool/custom_tools/custom_translations.py`
+- `/root/hll_rcon_tool/custom_tools/watch_balance.py`
 
 ⚠️ This plugin requires a modification of the `/root/hll_rcon_tool/config/supervisord.conf` file, which originates from the official CRCON depot.  
 If any CRCON upgrade implies updating this file, the usual upgrade procedure, as given in official CRCON instructions, will **FAIL**.  
