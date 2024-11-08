@@ -12,6 +12,7 @@ that watches the teams players levels.
   - `custom_common.py`
   - `custom_translations.py`
   - `watch_balance.py`
+  - `watch_balance_config.py`
 - Edit `/root/hll_rcon_tool/config/supervisord.conf` to add this bot section : 
   ```conf
   [program:watch_balance]
