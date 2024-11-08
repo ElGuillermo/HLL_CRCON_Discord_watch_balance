@@ -1,8 +1,9 @@
 """
-custom_common.py
+common_functions
 
-Common tools and parameters for HLL CRCON custom plugins
-(see : https://github.com/MarechJ/hll_rcon_tool)
+Common functions and variables
+for HLL CRCON (https://github.com/MarechJ/hll_rcon_tool)
+custom plugins
 
 Source : https://github.com/ElGuillermo
 
