@@ -8,7 +8,7 @@ that watches the teams players levels.
 ## Install
 - Copy `restart.sh` in CRCON's root (`/root/hll_rcon_tool/`) ;
 - Create a `custom_tools` folder in CRCON's root (`/root/hll_rcon_tool/`) ;
-- Copy these files into the newly created `/root/hll_rcon_tool/custom_tools` folder :
+- Copy these files into the newly created `/root/hll_rcon_tool/custom_tools/` folder :
   - `custom_common.py`
   - `custom_translations.py`
   - `watch_balance.py`
