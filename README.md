@@ -37,7 +37,7 @@ that watches the teams players levels.
 - `/root/hll_rcon_tool/custom_tools/common_functions.py`
 - `/root/hll_rcon_tool/custom_tools/common_translations.py`
 - `/root/hll_rcon_tool/custom_tools/watch_balance.py`
-- - `/root/hll_rcon_tool/custom_tools/watch_balance_config.py`
+- `/root/hll_rcon_tool/custom_tools/watch_balance_config.py`
 
 ⚠️ This plugin requires a modification of the `/root/hll_rcon_tool/config/supervisord.conf` file, which originates from the official CRCON depot.  
 If any CRCON upgrade implies updating this file, the usual upgrade procedure, as given in official CRCON instructions, will **FAIL**.  
