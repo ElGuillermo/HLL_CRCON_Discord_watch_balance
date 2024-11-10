@@ -401,7 +401,7 @@ def discord_embed_send(
         if db_message:
             message_id = db_message.message_id
             if message_id not in seen_messages:
-                logger.info("Resuming with message_id %s", message_id)
+                logger.debug("Resuming with message_id %s", message_id)
                 seen_messages.add(message_id)
             message_id = discord_embed_selfrefresh_sendoredit(
                 session=session,
