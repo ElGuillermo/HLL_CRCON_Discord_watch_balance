@@ -21,6 +21,7 @@ docker compose up -d --remove-orphans
 echo "----------------------------------------"
 echo "Start CRCON : done."
 
+echo " "
 echo "Clean Docker files"
 echo "----------------------------------------"
 docker volume rm $(docker volume ls -qf dangling=true)
@@ -29,10 +30,11 @@ echo "----------------------------------------"
 echo "Clean Docker files : done."
 
 echo " "
-echo "Actual CRCON size :"
-du -sh /root/hll_rcon_tool/
-echo "(included logs)"
-du -sh /root/hll_rcon_tool/logs
+echo "----------------------------------------"
+{ du -sh -0 /root/hll_rcon_tool/db_data; echo " (database)"; }
+{ du -sh -0 /root/hll_rcon_tool/logs; echo " (logs)"; }
+echo "------------------"
+{ du -sh -0 /root/hll_rcon_tool/; echo " (CRCON total size)"; }
 echo "----------------------------------------"
 
 echo " "
