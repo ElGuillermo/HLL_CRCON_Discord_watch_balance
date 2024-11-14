@@ -1,6 +1,6 @@
 # HLL_CRCON_Discord_watch_balance
 
-A plugin for HLL CRCON (see : https://github.com/MarechJ/hll_rcon_tool)
+A plugin for Hell Let Loose (HLL) CRCON (see : https://github.com/MarechJ/hll_rcon_tool)
 that watches the teams players levels.
 
 ![375489638-1b9f8fec-7f27-49a0-a4a7-a825fbbf174b](https://github.com/user-attachments/assets/2357b6a2-3a79-492b-8d9c-c1aaff9abf33)
