@@ -22,6 +22,7 @@ from requests.exceptions import ConnectionError, RequestException
 from sqlalchemy import select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 from rcon.rcon import Rcon
+from rcon.game_logs import get_recent_logs
 from rcon.steam_utils import get_steam_api_key
 from rcon.user_config.rcon_server_settings import RconServerSettingsUserConfig
 from rcon.utils import get_server_number
@@ -58,11 +59,94 @@ except Exception:
 
 # Lists
 # Used by watch_killrate.py
+WEAPONS_ARMOR = [
+    # US
+    "M6 37mm [M8 Greyhound]",
+    "COAXIAL M1919 [M8 Greyhound]",
+    "37MM CANNON [Stuart M5A1]",
+    "COAXIAL M1919 [Stuart M5A1]",
+    "HULL M1919 [Stuart M5A1]",
+    "75MM CANNON [Sherman M4A3(75)W]",
+    "COAXIAL M1919 [Sherman M4A3(75)W]",
+    "HULL M1919 [Sherman M4A3(75)W]",
+    "75MM M3 GUN [Sherman M4A3E2]",
+    "COAXIAL M1919 [Sherman M4A3E2]",
+    "HULL M1919 [Sherman M4A3E2]",
+    "76MM M1 GUN [Sherman M4A3E2(76)]",
+    "COAXIAL M1919 [Sherman M4A3E2(76)]",
+    "HULL M1919 [Sherman M4A3E2(76)]",
+    "M2 Browning [M3 Half-track]",
+    # GER
+    "50mm KwK 39/1 [Sd.Kfz.234 Puma]",
+    "COAXIAL MG34 [Sd.Kfz.234 Puma]",
+    "20MM KWK 30 [Sd.Kfz.121 Luchs]",
+    "COAXIAL MG34 [Sd.Kfz.121 Luchs]",
+    "75MM CANNON [Sd.Kfz.161 Panzer IV]",
+    "COAXIAL MG34 [Sd.Kfz.161 Panzer IV]",
+    "HULL MG34 [Sd.Kfz.161 Panzer IV]",
+    "75MM CANNON [Sd.Kfz.171 Panther]",
+    "COAXIAL MG34 [Sd.Kfz.171 Panther]",
+    "HULL MG34 [Sd.Kfz.171 Panther]",
+    "88 KWK 36 L/56 [Sd.Kfz.181 Tiger 1]",
+    "COAXIAL MG34 [Sd.Kfz.181 Tiger 1]",
+    "HULL MG34 [Sd.Kfz.181 Tiger 1]",
+    "MG 42 [Sd.Kfz 251 Half-track]",
+    # USSR
+    "19-K 45MM [BA-10]",
+    "COAXIAL DT [BA-10]",
+    "45MM M1937 [T70]",
+    "COAXIAL DT [T70]",
+    "76MM ZiS-5 [T34/76]",
+    "COAXIAL DT [T34/76]",
+    "HULL DT [T34/76]",
+    "D-5T 85MM [IS-1]",
+    "COAXIAL DT [IS-1]",
+    "HULL DT [IS-1]",
+    "M2 Browning [M3 Half-track]",
+    # GB
+    "QF 2-POUNDER [Daimler]",
+    "COAXIAL BESA [Daimler]",
+    "QF 2-POUNDER [Tetrarch]",
+    "COAXIAL BESA [Tetrarch]",
+    "37MM CANNON [M3 Stuart Honey]",
+    "COAXIAL M1919 [M3 Stuart Honey]",
+    "HULL M1919 [M3 Stuart Honey]",
+    "OQF 75MM [Cromwell]",
+    "COAXIAL BESA [Cromwell]",
+    "HULL BESA [Cromwell]",
+    "OQF 57MM [Crusader Mk.III]",
+    "COAXIAL BESA [Crusader Mk.III]",
+    "QF 17-POUNDER [Firefly]",
+    "COAXIAL M1919 [Firefly]",
+    "OQF 57MM [Churchill Mk.III]",
+    "COAXIAL BESA 7.92mm [Churchill Mk.III]",
+    "HULL BESA 7.92mm [Churchill Mk.III]",
+    "OQF 57MM [Churchill Mk.VII]",
+    "COAXIAL BESA 7.92mm [Churchill Mk.VII]",
+    "HULL BESA 7.92mm [Churchill Mk.VII]"
+]
+
 WEAPONS_ARTILLERY = [
+    # US
     "155MM HOWITZER [M114]",
+    # GER
     "150MM HOWITZER [sFH 18]",
+    # USSR
     "122MM HOWITZER [M1938 (M-30)]",
+    # GB
     "QF 25-POUNDER [QF 25-Pounder]"
+]
+
+WEAPONS_MG = [
+    # US
+    "BROWNING M1919",
+    # GER
+    "MG34",
+    "MG42",
+    # USSR
+    "DP-27",
+    # GB
+    "Lewis Gun"
 ]
 
 
@@ -80,7 +164,6 @@ class WatchBalanceMessage(Base):
     Adapted from scorebot... Not sure about how it's working :/
     """
     __tablename__ = "stats_messages"
-
     server_number: Mapped[int] = mapped_column(primary_key=True)
     message_type: Mapped[str] = mapped_column(default="live", primary_key=True)
     message_id: Mapped[int] = mapped_column(primary_key=True)
@@ -113,7 +196,6 @@ def discord_embed_selfrefresh_cleanup_orphaned_messages(
         .where(WatchBalanceMessage.webhook == webhook_url)
     )
     res = session.scalars(stmt).one_or_none()
-
     if res:
         session.delete(res)
 
@@ -150,7 +232,7 @@ def discord_embed_selfrefresh_fetch_existing(
 
 def get_avatar_url(
     player_id: str
-):
+) -> str:
     """
     Returns the avatar url from a player ID
     Steam players can have an avatar
@@ -177,6 +259,22 @@ def get_external_profile_url(
         gamepass_pseudo_url = player_name.replace(" ", "-")
         ext_profile_url = f"{GAMEPASS_PROFILE_INFO_URL}{gamepass_pseudo_url}"
     return ext_profile_url
+
+
+def get_match_elapsed_secs() -> float:
+    """
+    Returns the number of seconds since MATCH START
+    """
+    secs_since_match_start = 1
+    logs_match_start = get_recent_logs(
+        action_filter=["MATCH START"],
+        exact_action=True
+    )
+    match_start_timestamp = logs_match_start["logs"][0]["timestamp_ms"] / 1000
+    secs_since_match_start = (
+        datetime.now() - datetime.fromtimestamp(match_start_timestamp)
+    ).total_seconds()
+    return secs_since_match_start
 
 
 def get_steam_avatar(
@@ -312,7 +410,6 @@ def seconds_until_start(schedule) -> int:
         return_value = int((tomorrow_start_dt - now).total_seconds())
     else:
         return_value = 0
-
     return return_value
 
 
@@ -339,9 +436,7 @@ def discord_embed_selfrefresh_sendoredit(
 
     # The message can't be found - delete its session
     except NotFound:
-        logger.error(
-            "Message with ID: %s in our records does not exist", message_id
-        )
+        logger.error("Message with ID: %s in our records does not exist", message_id)
         discord_embed_selfrefresh_cleanup_orphaned_messages(
             session=session,
             server_number=server_number,
@@ -351,9 +446,7 @@ def discord_embed_selfrefresh_sendoredit(
 
     # The message can't be reached at this time
     except (HTTPException, RequestException, ConnectionError):
-        logger.exception(
-            "Temporary failure when trying to edit message ID: %s", message_id
-        )
+        logger.exception("Temporary failure when trying to edit message ID: %s", message_id)
 
     # The message can't be edited - delete its session
     except Exception as error:
@@ -370,7 +463,7 @@ def discord_embed_send(
         embed: discord.Embed,
         webhook: discord.Webhook,
         engine = None
-    ):
+    ) -> None:
     """
     Sends an embed message to Discord
     - one-time embed if no "engine" set
