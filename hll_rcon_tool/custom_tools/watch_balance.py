@@ -1,5 +1,5 @@
 """
-watch_balance
+watch_balance.py
 
 A plugin for HLL CRCON (https://github.com/MarechJ/hll_rcon_tool)
 that watches the teams players levels.
@@ -18,17 +18,9 @@ from sqlalchemy import create_engine
 from rcon.rcon import Rcon
 from rcon.settings import SERVER_INFO
 from rcon.utils import get_server_number
-from custom_tools.common_functions import (
-    DISCORD_EMBED_AUTHOR_URL,
-    DISCORD_EMBED_AUTHOR_ICON_URL,
-    bold_the_highest,
-    green_to_red,
-    team_view_stats,
-    discord_embed_send,
-    Base
-)
+import custom_tools.common_functions as common_functions
 from custom_tools.common_translations import TRANSL
-from custom_tools.watch_balance_config import *
+import custom_tools.watch_balance_config as config
 
 
 def team_avg(
@@ -39,6 +31,8 @@ def team_avg(
 ) -> float:
     """
     Divide the sum of "observed_parameter" values from all the players in "team" by "total_count"
+    ie :
+    t1_lvl_avg: float = team_avg(all_players, "allies", "level", t1_count)
     """
     if total_count == 0:
         return 0
@@ -61,7 +55,7 @@ def level_cursor(
     ie (slots_tot = 40) : "`200 67% [-------------------->>>>>>>|-------------] 100 33%`"
     ie (slots_tot = 40) : "` 50 25% [----------|<<<<<<<<<<--------------------] 150 75%`"
     """
-    t1_avg_pct: float = (t1_lvl_avg / (t1_lvl_avg + t2_lvl_avg)) * 100  # type: ignore
+    t1_avg_pct: float = (t1_lvl_avg / (t1_lvl_avg + t2_lvl_avg)) * 100
     t1_avg_pct_slots: int = round(t1_avg_pct / (100 / slots_tot))
     t2_avg_pct_slots: int = slots_tot - t1_avg_pct_slots
 
@@ -120,28 +114,28 @@ def level_pop_distribution(
         # level 5
         f"`250-500: {t1_l5_count:>2} {round((t1_l5_count * 100) / t1_count):>3}%"
         f" [{round((slots_tot / 2) - t1_l5_slots) * ' '}{t1_l5_slots * '■'}"
-        f"|{t2_l5_slots * '■'}{round((slots_tot / 2) - t2_l5_slots) * ' '}] "
-        f"{t2_l5_count:>2} {round((t2_l5_count * 100) / t2_count):>3}%`\n"
+        f"|{t2_l5_slots * '■'}{round((slots_tot / 2) - t2_l5_slots) * ' '}]"
+        f" {t2_l5_count:>2} {round((t2_l5_count * 100) / t2_count):>3}%`\n"
         # level 4
         f"`125-249: {t1_l4_count:>2} {round((t1_l4_count * 100) / t1_count):>3}%"
         f" [{round((slots_tot / 2) - t1_l4_slots) * ' '}{t1_l4_slots * '■'}"
-        f"|{t2_l4_slots * '■'}{round((slots_tot / 2) - t2_l4_slots) * ' '}] "
-        f"{t2_l4_count:>2} {round((t2_l4_count * 100) / t2_count):>3}%`\n"
+        f"|{t2_l4_slots * '■'}{round((slots_tot / 2) - t2_l4_slots) * ' '}]"
+        f" {t2_l4_count:>2} {round((t2_l4_count * 100) / t2_count):>3}%`\n"
         # level 3
         f"` 60-124: {t1_l3_count:>2} {round((t1_l3_count * 100) / t1_count):>3}%"
         f" [{round((slots_tot / 2) - t1_l3_slots) * ' '}{t1_l3_slots * '■'}"
-        f"|{t2_l3_slots * '■'}{round((slots_tot / 2) - t2_l3_slots) * ' '}] "
-        f"{t2_l3_count:>2} {round((t2_l3_count * 100) / t2_count):>3}%`\n"
+        f"|{t2_l3_slots * '■'}{round((slots_tot / 2) - t2_l3_slots) * ' '}]"
+        f" {t2_l3_count:>2} {round((t2_l3_count * 100) / t2_count):>3}%`\n"
         # level 2
         f"` 30- 59: {t1_l2_count:>2} {round((t1_l2_count * 100) / t1_count):>3}%"
         f" [{round((slots_tot / 2) - t1_l2_slots) * ' '}{t1_l2_slots * '■'}"
-        f"|{t2_l2_slots * '■'}{round((slots_tot / 2) - t2_l2_slots) * ' '}] "
-        f"{t2_l2_count:>2} {round((t2_l2_count * 100) / t2_count):>3}%`\n"
+        f"|{t2_l2_slots * '■'}{round((slots_tot / 2) - t2_l2_slots) * ' '}]"
+        f" {t2_l2_count:>2} {round((t2_l2_count * 100) / t2_count):>3}%`\n"
         # level 1
         f"`  1- 29: {t1_l1_count:>2} {round((t1_l1_count * 100) / t1_count):>3}%"
         f" [{round((slots_tot / 2) - t1_l1_slots) * ' '}{t1_l1_slots * '■'}"
-        f"|{t2_l1_slots * '■'}{round((slots_tot / 2) - t2_l1_slots) * ' '}] "
-        f"{t2_l1_count:>2} {round((t2_l1_count * 100) / t2_count):>3}%`"
+        f"|{t2_l1_slots * '■'}{round((slots_tot / 2) - t2_l1_slots) * ' '}]"
+        f" {t2_l1_count:>2} {round((t2_l1_count * 100) / t2_count):>3}%`"
     )
 
     return return_str
@@ -162,10 +156,13 @@ def watch_balance_loop(engine) -> None:
         _,
         _,
         _
-    ) = team_view_stats(rcon) # type: ignore
+    ) = common_functions.team_view_stats(rcon)
 
     if len(all_teams) < 2:
-        logger.info("Less than 2 teams ingame. Waiting for %s mins...", round((WATCH_INTERVAL_SECS / 60), 2))
+        logger.info(
+            "Less than 2 teams ingame. Waiting for %s mins...",
+            round((config.WATCH_INTERVAL_SECS / 60), 1)
+        )
         return
 
     watch_balance(
@@ -181,14 +178,14 @@ def watch_balance(
         engine
 ) -> None:
     """
-    Gets the data from team_view_stats(),
+    Gets the data from common_functions.team_view_stats(),
     process it, then display it in a Discord embed
     """
     # Check if enabled
     server_number = int(get_server_number())
-    if not SERVER_CONFIG[server_number - 1][1]:
+    if not config.SERVER_CONFIG[server_number - 1][1]:
         return
-    discord_webhook = SERVER_CONFIG[server_number - 1][0]
+    discord_webhook = config.SERVER_CONFIG[server_number - 1][0]
 
     # Gather data
     for team in all_teams:
@@ -212,7 +209,10 @@ def watch_balance(
             t2_support: int = team["axis"]["support"]
 
     if t1_lvl_avg == 0 or t2_lvl_avg == 0:
-        logger.info("Bad data : either Allies or Axis average level is 0. Waiting for %s mins...", round((WATCH_INTERVAL_SECS / 60), 2))
+        logger.info(
+            "Bad data : either Allies or Axis average level is 0. Waiting for %s mins...",
+            round((config.WATCH_INTERVAL_SECS / 60), 2)
+        )
         return
 
     # Gather data : officers
@@ -235,15 +235,13 @@ def watch_balance(
         t1_officers_lvl_avg: float = 0
         t2_officers_lvl_avg: float = 0
 
-    # Discord embed
-
     # Discord embed title
-    avg_diff_ratio: float = max(t1_lvl_avg, t2_lvl_avg) / min(t1_lvl_avg, t2_lvl_avg)  # type: ignore
-    embed_title: str = f"{TRANSL['ratio'][LANG]} : {str(round(avg_diff_ratio, 2))}"
+    avg_diff_ratio: float = max(t1_lvl_avg, t2_lvl_avg) / min(t1_lvl_avg, t2_lvl_avg)
+    embed_title: str = f"{TRANSL['ratio'][config.LANG]} : {str(round(avg_diff_ratio, 2))}"
 
     # Average level (all players) : title
-    all_lvl_avg: float = (t1_lvl_avg + t2_lvl_avg) / 2  # type: ignore
-    all_lvl_avg_title: str = f"{TRANSL['level'][LANG]} ({TRANSL['avg'][LANG]}) : {round(all_lvl_avg)}"
+    all_lvl_avg: float = (t1_lvl_avg + t2_lvl_avg) / 2
+    all_lvl_avg_title: str = f"{TRANSL['level'][config.LANG]} ({TRANSL['avg'][config.LANG]}) : {round(all_lvl_avg)}"
 
     all_lvl_graph: str = level_cursor(
         t1_lvl_avg = t1_lvl_avg,
@@ -252,8 +250,8 @@ def watch_balance(
 
     # Average level (officers) : title
     if t1_officers_count != 0 and t2_officers_count != 0 :
-        all_officers_lvl_avg: float = (t1_officers_lvl_tot + t2_officers_lvl_tot) / (t1_officers_count + t2_officers_count)  # type: ignore
-        all_officers_lvl_avg_title: str = f"{TRANSL['level'][LANG]} {TRANSL['officers'][LANG]} ({TRANSL['avg'][LANG]}) : {round(all_officers_lvl_avg)}"
+        all_officers_lvl_avg: float = (t1_officers_lvl_tot + t2_officers_lvl_tot) / (t1_officers_count + t2_officers_count)
+        all_officers_lvl_avg_title: str = f"{TRANSL['level'][config.LANG]} {TRANSL['officers'][config.LANG]} ({TRANSL['avg'][config.LANG]}) : {round(all_officers_lvl_avg)}"
 
         all_officers_lvl_graph: str = level_cursor(
             t1_lvl_avg = t1_officers_lvl_avg,
@@ -261,39 +259,39 @@ def watch_balance(
         )
 
     # level population : title
-    all_lvl_pop_title: str = f"{TRANSL['level'][LANG]} {TRANSL['distribution'][LANG]}"
+    all_lvl_pop_title: str = f"{TRANSL['level'][config.LANG]} {TRANSL['distribution'][config.LANG]}"
 
+    # Teams stats
     all_lvl_pop_text: str = level_pop_distribution(
         all_players = all_players,
         t1_count = t1_count,
         t2_count = t2_count
     )
 
-    # Teams stats
     # col1
-    col1_embed_title: str = f"{TRANSL['stats'][LANG]}"
-    transl_tot_moy: str = f"({TRANSL['tot'][LANG]}/{TRANSL['avg'][LANG]})"
+    col1_embed_title: str = f"{TRANSL['stats'][config.LANG]}"
+    transl_tot_moy: str = f"({TRANSL['tot'][config.LANG]}/{TRANSL['avg'][config.LANG]})"
     col1_embed_text: str = (
-        f"{TRANSL['players'][LANG]}\n\n"
-        f"{TRANSL['kills'][LANG]} {transl_tot_moy}\n"
-        f"{TRANSL['deaths'][LANG]} {transl_tot_moy}\n\n"
-        f"{TRANSL['combat'][LANG]} {transl_tot_moy}\n"
-        f"{TRANSL['offense'][LANG]} {transl_tot_moy}\n"
-        f"{TRANSL['defense'][LANG]} {transl_tot_moy}\n"
-        f"{TRANSL['support'][LANG]} {transl_tot_moy}"
+        f"{TRANSL['players'][config.LANG]}\n\n"
+        f"{TRANSL['kills'][config.LANG]} {transl_tot_moy}\n"
+        f"{TRANSL['deaths'][config.LANG]} {transl_tot_moy}\n\n"
+        f"{TRANSL['combat'][config.LANG]} {transl_tot_moy}\n"
+        f"{TRANSL['offense'][config.LANG]} {transl_tot_moy}\n"
+        f"{TRANSL['defense'][config.LANG]} {transl_tot_moy}\n"
+        f"{TRANSL['support'][config.LANG]} {transl_tot_moy}"
     )
 
     # col2
     # col3
-    t1_kills_str, t2_kills_str = bold_the_highest(t1_kills, t2_kills)
-    t1_deaths_str, t2_deaths_str = bold_the_highest(t1_deaths, t2_deaths)
-    t1_combat_str, t2_combat_str = bold_the_highest(t1_combat, t2_combat)
-    t1_off_str, t2_off_str = bold_the_highest(t1_off, t2_off)
-    t1_def_str, t2_def_str = bold_the_highest(t1_def, t2_def)
-    t1_support_str, t2_support_str = bold_the_highest(t1_support, t2_support)
+    t1_kills_str, t2_kills_str = common_functions.bold_the_highest(t1_kills, t2_kills)
+    t1_deaths_str, t2_deaths_str = common_functions.bold_the_highest(t1_deaths, t2_deaths)
+    t1_combat_str, t2_combat_str = common_functions.bold_the_highest(t1_combat, t2_combat)
+    t1_off_str, t2_off_str = common_functions.bold_the_highest(t1_off, t2_off)
+    t1_def_str, t2_def_str = common_functions.bold_the_highest(t1_def, t2_def)
+    t1_support_str, t2_support_str = common_functions.bold_the_highest(t1_support, t2_support)
 
     # col2
-    col2_embed_title: str = TRANSL["allies"][LANG]
+    col2_embed_title: str = TRANSL["allies"][config.LANG]
     col2_embed_text: str = (
         f"{str(t1_count)}\n\n"
         f"{t1_kills_str} / {str(round(team_avg(all_players, 'allies', 'kills', t1_count)))}\n"
@@ -305,7 +303,7 @@ def watch_balance(
     )
 
     # col3
-    col3_embed_title: str = TRANSL["axis"][LANG]
+    col3_embed_title: str = TRANSL["axis"][config.LANG]
     col3_embed_text: str = (
         f"{str(t2_count)}\n\n"
         f"{t2_kills_str} / {str(round(team_avg(all_players, 'axis', 'kills', t2_count)))}\n"
@@ -318,48 +316,47 @@ def watch_balance(
 
     # Log
     logger.info(
-        # ratio : 1.33 - joueurs : (Alliés) 90.62 ; (Axe) 120.96 - officiers : (Alliés) 111.22 ; (Axe) 126.15
         "%s : %s - %s : (%s) %s ; (%s) %s - %s : (%s) %s ; (%s) %s",
-            TRANSL['ratio'][LANG],
+            TRANSL['ratio'][config.LANG],
             str(round(avg_diff_ratio, 2)),
-            TRANSL['players'][LANG],
-            TRANSL['allies'][LANG],
+            TRANSL['players'][config.LANG],
+            TRANSL['allies'][config.LANG],
             str(round(t1_lvl_avg, 2)),
-            TRANSL['axis'][LANG],
+            TRANSL['axis'][config.LANG],
             str(round(t2_lvl_avg, 2)),
-            TRANSL['officers'][LANG],
-            TRANSL['allies'][LANG],
+            TRANSL['officers'][config.LANG],
+            TRANSL['allies'][config.LANG],
             str(round(t1_officers_lvl_avg, 2)),
-            TRANSL['axis'][LANG],
+            TRANSL['axis'][config.LANG],
             str(round(t2_officers_lvl_avg, 2))
     )
 
     # Create and send discord embed
     webhook = discord.SyncWebhook.from_url(discord_webhook)
-    embed_color = green_to_red(
-        value=avg_diff_ratio,
-        min_value=1,
-        max_value=2
-    )
     embed = discord.Embed(
         title=embed_title,
-        url=DISCORD_EMBED_AUTHOR_URL,
-        color=int(embed_color, base=16)
+        url=common_functions.DISCORD_EMBED_AUTHOR_URL,
+        color=int(
+            common_functions.green_to_red(value=avg_diff_ratio, min_value=1, max_value=2),
+            base=16
+        )
     )
     embed.set_author(
-        name=BOT_NAME,
-        url=DISCORD_EMBED_AUTHOR_URL,
-        icon_url=DISCORD_EMBED_AUTHOR_ICON_URL
+        name=config.BOT_NAME,
+        url=common_functions.DISCORD_EMBED_AUTHOR_URL,
+        icon_url=common_functions.DISCORD_EMBED_AUTHOR_ICON_URL
     )
     embed.add_field(name=all_lvl_avg_title, value=all_lvl_graph, inline=False)
-    if t1_officers_count != 0 and t2_officers_count != 0 :  # Should be always true
-        embed.add_field(name=all_officers_lvl_avg_title, value=all_officers_lvl_graph, inline=False)
+    if t1_officers_count != 0 and t2_officers_count != 0 :
+        embed.add_field(
+            name=all_officers_lvl_avg_title, value=all_officers_lvl_graph, inline=False
+        )
     embed.add_field(name=all_lvl_pop_title, value=all_lvl_pop_text, inline=False)
     embed.add_field(name=col1_embed_title, value=col1_embed_text, inline=True)
     embed.add_field(name=col2_embed_title, value=col2_embed_text, inline=True)
     embed.add_field(name=col3_embed_title, value=col3_embed_text, inline=True)
 
-    discord_embed_send(embed, webhook, engine)
+    common_functions.discord_embed_send(embed, webhook, engine)
 
 
 # Launching - initial pause : wait to be sure the CRCON is fully started
@@ -371,7 +368,7 @@ logger.info(
     "\n-------------------------------------------------------------------------------\n"
     "%s (started)\n"
     "-------------------------------------------------------------------------------",
-    BOT_NAME
+    config.BOT_NAME
 )
 
 # Launching and running (infinite loop)
@@ -379,7 +376,7 @@ if __name__ == "__main__":
     root_path = os.getenv("BALANCE_WATCH_DATA_PATH", "/data")
     full_path = pathlib.Path(root_path) / pathlib.Path("watch_balance.db")
     engine = create_engine(f"sqlite:///file:{full_path}?mode=rwc&uri=true", echo=False)
-    Base.metadata.create_all(engine)
+    common_functions.Base.metadata.create_all(engine)
     while True:
         watch_balance_loop(engine)
-        sleep(WATCH_INTERVAL_SECS)
+        sleep(config.WATCH_INTERVAL_SECS)
