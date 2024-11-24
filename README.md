@@ -17,7 +17,9 @@ that watches the teams players levels and display a report in a dedicated Discor
 ## Install
 - Log into your CRCON host machine using SSH and enter these commands (one line at at time) :  
 
-  First part (if you already have installed any other "custom tools" from ElGuillermo, you can skip this part)
+  First part
+  If you already have installed any other "custom tools" from ElGuillermo, you can skip this part.  
+  (though it's always a good idea to redownload the files, as they could have been updated)
   ```shell
   cd /root/hll_rcon_tool
   wget https://raw.githubusercontent.com/ElGuillermo/HLL_RCON_restart/refs/heads/main/restart.sh
