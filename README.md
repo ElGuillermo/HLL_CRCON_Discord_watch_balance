@@ -1,6 +1,6 @@
 # HLL_CRCON_Discord_watch_balance
 A plugin for Hell Let Loose (HLL) CRCON (see : https://github.com/MarechJ/hll_rcon_tool)
-that watches the teams players levels.
+that watches the teams players levels and display a report in a dedicated Discord channel.
 
 ![375489638-1b9f8fec-7f27-49a0-a4a7-a825fbbf174b](https://github.com/user-attachments/assets/2357b6a2-3a79-492b-8d9c-c1aaff9abf33)
 
@@ -15,13 +15,22 @@ that watches the teams players levels.
 > If so, you'll have to adapt the commands below accordingly.
 
 ## Install
-- Copy `restart.sh` in CRCON's root (`/root/hll_rcon_tool/`) ;
-- Create a `custom_tools` folder in CRCON's root (`/root/hll_rcon_tool/`) ;
-- Copy these files into the newly created `/root/hll_rcon_tool/custom_tools/` folder :
-  - `common_functions.py`
-  - `common_translations.py`
-  - `watch_balance.py`
-  - `watch_balance_config.py`
+- Log into your CRCON host machine using SSH and enter these commands (one line at at time) :  
+
+  First part (if you already have installed any other "custom tools" from ElGuillermo, you can skip this part)
+  ```shell
+  cd /root/hll_rcon_tool
+  wget https://raw.githubusercontent.com/ElGuillermo/HLL_RCON_restart/refs/heads/main/restart.sh
+  mkdir custom_tools
+  cd custom_tools
+  wget https://raw.githubusercontent.com/ElGuillermo/HLL_CRCON_custom_common_functions.py/refs/heads/main/common_functions.py
+  wget https://raw.githubusercontent.com/ElGuillermo/HLL_CRCON_custom_common_translations.py/refs/heads/main/common_translations.py
+  ```
+  Second part
+  ```shell
+  cd /root/hll_rcon_tool/custom_tools
+  wget https://raw.githubusercontent.com/ElGuillermo/HLL_CRCON_Discord_watch_balance/refs/heads/main/hll_rcon_tool/custom_tools/watch_balance.py
+  wget https://raw.githubusercontent.com/ElGuillermo/HLL_CRCON_Discord_watch_balance/refs/heads/main/hll_rcon_tool/custom_tools/watch_balance_config.py
 - Edit `/root/hll_rcon_tool/config/supervisord.conf` to add this bot section : 
   ```conf
   [program:watch_balance]
