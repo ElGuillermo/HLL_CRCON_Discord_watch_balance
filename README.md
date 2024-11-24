@@ -4,6 +4,8 @@ that watches the teams players levels and display a report in a dedicated Discor
 
 ![375489638-1b9f8fec-7f27-49a0-a4a7-a825fbbf174b](https://github.com/user-attachments/assets/2357b6a2-3a79-492b-8d9c-c1aaff9abf33)
 
+## Install
+
 > [!NOTE]
 > The shell commands given below assume your CRCON is installed in `/root/hll_rcon_tool`.  
 > You may have installed your CRCON in a different folder.  
@@ -14,7 +16,6 @@ that watches the teams players levels and display a report in a dedicated Discor
 >   
 > If so, you'll have to adapt the commands below accordingly.
 
-## Install
 - Log into your CRCON host machine using SSH and enter these commands (one line at at time) :  
 
   First part  
