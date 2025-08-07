@@ -11,6 +11,7 @@ Feel free to use/modify/distribute, as long as you keep this note in your code
 
 import logging
 from time import sleep
+from datetime import datetime, timezone
 import os
 import pathlib
 import discord
@@ -355,6 +356,8 @@ def watch_balance(
     embed.add_field(name=col1_embed_title, value=col1_embed_text, inline=True)
     embed.add_field(name=col2_embed_title, value=col2_embed_text, inline=True)
     embed.add_field(name=col3_embed_title, value=col3_embed_text, inline=True)
+    embed.set_footer(text="Last Updated")
+    embed.timestamp = datetime.now(tz=timezone.utc)
 
     common_functions.discord_embed_send(embed, webhook, engine)
 
