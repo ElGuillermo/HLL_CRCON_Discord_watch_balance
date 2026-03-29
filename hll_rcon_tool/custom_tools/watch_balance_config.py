@@ -24,7 +24,7 @@ CATEGORIES = {
     # infantry
     "officer": {"officer"},
     "infantry": {"antitank", "automaticrifleman", "assault", "heavymachinegunner", "support", "rifleman", "engineer", "medic"},
-    # armoe
+    # armor
     "tankcommander": {"tankcommander"},
     "armor": {"crewman"},
     # artillery
