@@ -11,7 +11,7 @@ Feel free to use/modify/distribute, as long as you keep this note in your code
 
 # Per role stats
 # "key": {"role1", "role2", ...}
-# Each key and role MUST be in the TRANSL list in common_translations.py
+# Each key and role MUST be a key in the TRANSL list in common_translations.py
 # for each key/value, two lines will be generated :
 # ex :
 # for 'armycommander": {"commander"}'
