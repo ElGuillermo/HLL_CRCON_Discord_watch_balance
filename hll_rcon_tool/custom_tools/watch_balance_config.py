@@ -20,7 +20,7 @@ Feel free to use/modify/distribute, as long as you keep this note in your code
 # You can specify multiple roles as values to group soldiers (see below)
 CATEGORIES = {
     # commanders
-    "armycommander": {"commander"},
+    "armycommander": {"armycommander"},
     # infantry
     "officer": {"officer"},
     "infantry": {"antitank", "automaticrifleman", "assault", "heavymachinegunner", "support", "rifleman", "engineer", "medic"},
