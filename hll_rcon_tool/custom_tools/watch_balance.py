@@ -11,10 +11,9 @@ Feel free to use/modify/distribute, as long as you keep this note in your code
 
 import logging
 from time import sleep
-from datetime import datetime, timezone
+import datetime
 import os
 import pathlib
-from typing import Tuple
 import discord
 from sqlalchemy import create_engine
 from rcon.rcon import Rcon
@@ -49,133 +48,274 @@ def team_avg(
 def level_cursor(
     t1_lvl_avg: float,
     t2_lvl_avg: float,
-    slots_tot: int = 44  # Prefer a pair value, or the 'middle pin' won't be in middle
+    slots_tot: int = 36
 ) -> str:
     """
-    Returns a full gauge :
-    ie (slots_tot = 40) : "`100 50% [--------------------|--------------------] 100 50%`"
-    ie (slots_tot = 40) : "`200 67% [-------------------->>>>>>>|-------------] 100 33%`"
-    ie (slots_tot = 40) : "` 50 25% [----------|<<<<<<<<<<--------------------] 150 75%`"
+    Returns a full gauge representing the balance between two average levels.
+    ie (slots_tot = 40) : "`100 50% [--------------------|--------------------] 50% 100`"
+    ie (slots_tot = 40) : "`200 67% [-------------------->>>>>>>|-------------] 33% 100`"
+    ie (slots_tot = 40) : "` 50 25% [----------|<<<<<<<<<<--------------------] 75% 150`"
     """
-    t1_avg_pct: float = (t1_lvl_avg / (t1_lvl_avg + t2_lvl_avg)) * 100
-    t1_avg_pct_slots: int = round(t1_avg_pct / (100 / slots_tot))
-    t2_avg_pct_slots: int = slots_tot - t1_avg_pct_slots
+    total_lvl = t1_lvl_avg + t2_lvl_avg
+    mid = slots_tot // 2
 
-    if t1_avg_pct_slots > round(slots_tot / 2):
-        t1_below50pct_str: str = "-" * round(slots_tot / 2)
-        t1_over50pct_str: str = ">" * (t1_avg_pct_slots - round(slots_tot / 2))
-        t2_below50pct_str: str = "-" * t2_avg_pct_slots
-        t2_over50pct_str: str = ""
+    if total_lvl > 0:
+        t1_pct = (t1_lvl_avg / total_lvl) * 100
+        t2_pct = 100 - t1_pct
+        pos = round((t1_pct * slots_tot) / 100)
     else:
-        t1_below50pct_str: str = "-" * t1_avg_pct_slots
-        t1_over50pct_str: str = ""
-        t2_below50pct_str: str = "-" * round(slots_tot / 2)
-        t2_over50pct_str: str = "<" * (t2_avg_pct_slots - round(slots_tot / 2))
+        t1_pct, t2_pct = 0.0, 0.0
+        pos = mid
 
-    return(
-        f"`{round(t1_lvl_avg):>3} {round(t1_avg_pct):>2}%"
-        f" [{t1_below50pct_str}{t1_over50pct_str}|{t2_over50pct_str}{t2_below50pct_str}] "
-        f"{round(t2_lvl_avg):>3} {round(100 - t1_avg_pct):>2}%`"
+    pos = max(0, min(pos, slots_tot - 1))
+    gauge = list("-" * slots_tot)
+    if pos > mid:
+        for i in range(mid, pos):
+            gauge[i] = ">"
+    elif pos < mid:
+        for i in range(pos + 1, mid + 1):
+            gauge[i] = "<"
+
+    gauge[pos] = "|"
+    gauge_str = "".join(gauge)
+
+    if t1_lvl_avg > 0 and t2_lvl_avg > 0:
+        avg_val = str(round((t1_lvl_avg + t2_lvl_avg) / 2))
+    else:
+        avg_val = "N/A"
+
+    return (
+        f"`avg: {avg_val:>3} "
+        f"{round(t1_lvl_avg):>4} {round(t1_pct):>3}%"
+        f"[{gauge_str}]"
+        f"{round(t2_pct):>3}% {round(t2_lvl_avg):>3}`"
     )
 
 
 def level_pop_distribution(
     all_players: list,
-    t1_count: int,
-    t2_count: int,
-    slots_tot: int = 36  # Prefer a pair value, or the 'middle pin' won't be in middle
+    slots_tot: int = 36
 ) -> str:
     """
-    returns a multilines (5) string representing a graph of level tiers
+    Returns a multilines (5) string representing a graph of level tiers.
     """
-    t1_l1_count: int = sum(1 for player in all_players if player["team"] == "allies" and 1 <= player["level"] < 30)
-    t1_l2_count: int = sum(1 for player in all_players if player["team"] == "allies" and 30 <= player["level"] < 60)
-    t1_l3_count: int = sum(1 for player in all_players if player["team"] == "allies" and 60 <= player["level"] < 125)
-    t1_l4_count: int = sum(1 for player in all_players if player["team"] == "allies" and 125 <= player["level"] < 250)
-    t1_l5_count: int = sum(1 for player in all_players if player["team"] == "allies" and 250 <= player["level"] <= 500)
+    tiers = [
+        (250, 500, "250-500"),
+        (125, 249, "125-249"),
+        (60, 124, " 60-124"),
+        (30, 59,  " 30- 59"),
+        (1, 29,   "  1- 29")
+    ]
 
-    t1_l1_slots: int = round((t1_l1_count * slots_tot) / (2 * t1_count))
-    t1_l2_slots: int = round((t1_l2_count * slots_tot) / (2 * t1_count))
-    t1_l3_slots: int = round((t1_l3_count * slots_tot) / (2 * t1_count))
-    t1_l4_slots: int = round((t1_l4_count * slots_tot) / (2 * t1_count))
-    t1_l5_slots: int = round((t1_l5_count * slots_tot) / (2 * t1_count))
+    counts = { (t[0], t[1]): [0, 0] for t in tiers }
+    real_t1_total = 0
+    real_t2_total = 0
 
-    t2_l1_count: int = sum(1 for player in all_players if player["team"] == "axis" and 1 <= player["level"] < 30)
-    t2_l2_count: int = sum(1 for player in all_players if player["team"] == "axis" and 30 <= player["level"] < 60)
-    t2_l3_count: int = sum(1 for player in all_players if player["team"] == "axis" and 60 <= player["level"] < 125)
-    t2_l4_count: int = sum(1 for player in all_players if player["team"] == "axis" and 125 <= player["level"] < 250)
-    t2_l5_count: int = sum(1 for player in all_players if player["team"] == "axis" and 250 <= player["level"] <= 500)
+    for p in all_players:
+        if p.get("unit_name") == "unassigned":
+            continue
+        lvl, team = p.get("level", 0), p.get("team")
+        if team == "allies": real_t1_total += 1
+        elif team == "axis": real_t2_total += 1
 
-    t2_l1_slots: int = round((t2_l1_count * slots_tot) / (2 * t2_count))
-    t2_l2_slots: int = round((t2_l2_count * slots_tot) / (2 * t2_count))
-    t2_l3_slots: int = round((t2_l3_count * slots_tot) / (2 * t2_count))
-    t2_l4_slots: int = round((t2_l4_count * slots_tot) / (2 * t2_count))
-    t2_l5_slots: int = round((t2_l5_count * slots_tot) / (2 * t2_count))
+        for low, high in counts:
+            if low <= lvl <= high:
+                if team == "allies": counts[(low, high)][0] += 1
+                elif team == "axis": counts[(low, high)][1] += 1
+                break
 
-    return_str = (
-        # level 5
-        f"`250-500: {t1_l5_count:>2} {round((t1_l5_count * 100) / t1_count):>3}%"
-        f" [{round((slots_tot / 2) - t1_l5_slots) * ' '}{t1_l5_slots * '■'}"
-        f"|{t2_l5_slots * '■'}{round((slots_tot / 2) - t2_l5_slots) * ' '}]"
-        f" {t2_l5_count:>2} {round((t2_l5_count * 100) / t2_count):>3}%`\n"
-        # level 4
-        f"`125-249: {t1_l4_count:>2} {round((t1_l4_count * 100) / t1_count):>3}%"
-        f" [{round((slots_tot / 2) - t1_l4_slots) * ' '}{t1_l4_slots * '■'}"
-        f"|{t2_l4_slots * '■'}{round((slots_tot / 2) - t2_l4_slots) * ' '}]"
-        f" {t2_l4_count:>2} {round((t2_l4_count * 100) / t2_count):>3}%`\n"
-        # level 3
-        f"` 60-124: {t1_l3_count:>2} {round((t1_l3_count * 100) / t1_count):>3}%"
-        f" [{round((slots_tot / 2) - t1_l3_slots) * ' '}{t1_l3_slots * '■'}"
-        f"|{t2_l3_slots * '■'}{round((slots_tot / 2) - t2_l3_slots) * ' '}]"
-        f" {t2_l3_count:>2} {round((t2_l3_count * 100) / t2_count):>3}%`\n"
-        # level 2
-        f"` 30- 59: {t1_l2_count:>2} {round((t1_l2_count * 100) / t1_count):>3}%"
-        f" [{round((slots_tot / 2) - t1_l2_slots) * ' '}{t1_l2_slots * '■'}"
-        f"|{t2_l2_slots * '■'}{round((slots_tot / 2) - t2_l2_slots) * ' '}]"
-        f" {t2_l2_count:>2} {round((t2_l2_count * 100) / t2_count):>3}%`\n"
-        # level 1
-        f"`  1- 29: {t1_l1_count:>2} {round((t1_l1_count * 100) / t1_count):>3}%"
-        f" [{round((slots_tot / 2) - t1_l1_slots) * ' '}{t1_l1_slots * '■'}"
-        f"|{t2_l1_slots * '■'}{round((slots_tot / 2) - t2_l1_slots) * ' '}]"
-        f" {t2_l1_count:>2} {round((t2_l1_count * 100) / t2_count):>3}%`"
+    half_slots = slots_tot // 2
+    formatted_lines = []
+
+    for low, high, label in tiers:
+        c1, c2 = counts[(low, high)]
+
+        p1 = round((c1 * 100) / real_t1_total) if real_t1_total > 0 else 0
+        s1 = round((c1 * half_slots) / real_t1_total) if real_t1_total > 0 else 0
+
+        p2 = round((c2 * 100) / real_t2_total) if real_t2_total > 0 else 0
+        s2 = round((c2 * half_slots) / real_t2_total) if real_t2_total > 0 else 0
+
+        s1, s2 = min(s1, half_slots), min(s2, half_slots)
+
+        bar_left = f"{(half_slots - s1) * ' '}{s1 * '■'}"
+        bar_right = f"{s2 * '■'}{(half_slots - s2) * ' '}"
+
+        formatted_lines.append(
+            f"`{label}: {c1:>2} {p1:>3}% [{bar_left}|{bar_right}] {p2:>3}% {c2:>2}`"
+        )
+
+    return (
+        f"{formatted_lines[0]}\n"
+        f"{formatted_lines[1]}\n"
+        f"{formatted_lines[2]}\n"
+        f"{formatted_lines[3]}\n"
+        f"{formatted_lines[4]}"
     )
-
-    return return_str
 
 
 def role_avg(
     all_players: list[dict],
     roles: set[str] | list[str]
-) -> tuple[int, float, int, float, float]:
+) -> tuple[int, float, int, float, float|str]:
     """
-    Calculates counts, average levels per team, and the difference ratio.
+    Calculates counts, average levels and the difference ratio per team/role(s)
     """
-    stats = {
-        "allies": {"level": 0, "count": 0},
-        "axis": {"level": 0, "count": 0}
-    }
+    t1_lvl, t1_count = 0, 0
+    t2_lvl, t2_count = 0, 0
 
-    for player in all_players:
-        team = player.get("team")
-        if player.get("role") in roles and team in stats:
-            stats[team]["level"] += player.get("level", 0)
-            stats[team]["count"] += 1
+    for p in all_players:
+        if p.get("unit_name") == "unassigned":
+            continue
+        if p.get("role") in roles:
+            team = p.get("team")
+            if team == "allies":
+                t1_lvl += p.get("level", 0)
+                t1_count += 1
+            elif team == "axis":
+                t2_lvl += p.get("level", 0)
+                t2_count += 1
 
-    # Moyennes (arrondies à 1 décimale)
-    t1_count = stats["allies"]["count"]
-    t2_count = stats["axis"]["count"]
+    t1_avg = round(t1_lvl / t1_count, 1) if t1_count > 0 else 0.0
+    t2_avg = round(t2_lvl / t2_count, 1) if t2_count > 0 else 0.0
 
-    t1_avg = round(stats["allies"]["level"] / t1_count, 1) if t1_count > 0 else 0.0
-    t2_avg = round(stats["axis"]["level"] / t2_count, 1) if t2_count > 0 else 0.0
-
-    # Ratio (arrondi à 2 décimales)
-    low_val = min(t1_avg, t2_avg)
-    if low_val > 0:
-        ratio = round(max(t1_avg, t2_avg) / low_val, 2)
+    if t1_avg > 0 and t2_avg > 0:
+        ratio = round(max(t1_avg, t2_avg) / min(t1_avg, t2_avg), 2)
     else:
-        ratio = 1.0
+        ratio = TRANSL['na'][config.LANG]
 
     return (t1_count, t1_avg, t2_count, t2_avg, ratio)
+
+
+def watch_balance(
+    all_teams: list,
+    all_players: list,
+    engine
+) -> None:
+    """
+    Gets the data from common_functions.team_view_stats(),
+    process it, then display it in a Discord embed
+    """
+    # Check if enabled on this server
+    try:
+        server_number = int(get_server_number())
+        server_config = config.SERVER_CONFIG[server_number - 1]
+
+        if not server_config[1]:
+            return
+
+        discord_webhook = server_config[0]
+
+    except (ValueError, TypeError, IndexError):
+        logger.error("Could not retrieve server configuration.")
+        return
+
+    # Get teams stats
+    # -------------------------------------------------------------------------
+    t1_count = sum(1 for p in all_players if p.get("team") == "allies" and p.get("unit_name") != "unassigned")
+    t2_count = sum(1 for p in all_players if p.get("team") == "axis" and p.get("unit_name") != "unassigned")
+
+    t1_stats = next((t["allies"] for t in all_teams if "allies" in t), {})
+    t2_stats = next((t["axis"] for t in all_teams if "axis" in t), {})
+
+    t1_lvl_avg = team_avg(all_players, "allies", "level", t1_count)
+    t2_lvl_avg = team_avg(all_players, "axis", "level", t2_count)
+
+    if t1_lvl_avg > 0 and t2_lvl_avg > 0:
+        avg_diff_ratio = round(max(t1_lvl_avg, t2_lvl_avg) / min(t1_lvl_avg, t2_lvl_avg), 2)
+    else:
+        avg_diff_ratio = TRANSL['na'][config.LANG]
+
+    embed_title = f"{TRANSL['all_players'][config.LANG]} - {TRANSL['level'][config.LANG]} ({TRANSL['ratio'][config.LANG]}) : {avg_diff_ratio}"
+
+    # Stats per role(s)
+    # -------------------------------------------------------------------------
+    results = {}
+    for key, roles in config.CATEGORIES.items():
+        t1_rc, t1_ra, t2_rc, t2_ra, ratio = role_avg(all_players, roles)
+        if t1_rc > 0 or t2_rc > 0:
+            results[key] = {
+                "title": f"{TRANSL[key][config.LANG]} - {TRANSL['ratio'][config.LANG]} : {ratio}",
+                "graph": level_cursor(t1_ra, t2_ra),
+                "ratio": ratio
+            }
+
+    # Raw stats
+    # -------------------------------------------------------------------------
+    fields = [
+        ("kills", t1_stats.get("kills", 0), t2_stats.get("kills", 0)),
+        ("deaths", t1_stats.get("deaths", 0), t2_stats.get("deaths", 0)),
+        ("combat", t1_stats.get("combat", 0), t2_stats.get("combat", 0)),
+        ("offense", t1_stats.get("offense", 0), t2_stats.get("offense", 0)),
+        ("defense", t1_stats.get("defense", 0), t2_stats.get("defense", 0)),
+        ("support", t1_stats.get("support", 0), t2_stats.get("support", 0)),
+    ]
+
+    col1_text = f"{TRANSL['players'][config.LANG]}\n"
+    col2_text = f"{t1_count}\n"
+    col3_text = f"{t2_count}\n"
+
+    for stat_key, v1, v2 in fields:
+        s1, s2 = common_functions.bold_the_highest(v1, v2)
+        a1 = round(team_avg(all_players, 'allies', stat_key, t1_count))
+        a2 = round(team_avg(all_players, 'axis', stat_key, t2_count))
+
+        col1_text += f"{TRANSL[stat_key][config.LANG]} ({TRANSL['tot'][config.LANG]}/{TRANSL['avg'][config.LANG]})\n"
+        col2_text += f"{s1} / {a1}\n"
+        col3_text += f"{s2} / {a2}\n"
+
+    # Discord embed
+    # -------------------------------------------------------------------------
+    webhook = discord.SyncWebhook.from_url(discord_webhook)
+
+    if isinstance(avg_diff_ratio, (int, float)):
+        avg_diff_ratio_color = avg_diff_ratio
+    else:
+        avg_diff_ratio_color = 1
+
+    embed = discord.Embed(
+        title=embed_title,
+        color=int(common_functions.green_to_red(value=avg_diff_ratio_color, min_value=1), base=16),
+        url=common_functions.DISCORD_EMBED_AUTHOR_URL
+    )
+    embed.set_author(name=config.BOT_NAME, icon_url=common_functions.DISCORD_EMBED_AUTHOR_ICON_URL)
+
+    # all players - distribution
+    embed.add_field(name=f"{TRANSL['all_players'][config.LANG]} - {TRANSL['distribution'][config.LANG]}",
+                    value=level_pop_distribution(all_players),
+                    inline=False)
+
+    # all players - level
+    if t1_lvl_avg > 0 and t2_lvl_avg > 0:
+        ratio_display = round(max(t1_lvl_avg, t2_lvl_avg) / min(t1_lvl_avg, t2_lvl_avg), 2)
+    else:
+        ratio_display = TRANSL['na'][config.LANG]
+
+    embed.add_field(name=f"{TRANSL['all_players'][config.LANG]} - {TRANSL['level'][config.LANG]} ({TRANSL['ratio'][config.LANG]}) : {ratio_display}",
+                    value=level_cursor(t1_lvl_avg, t2_lvl_avg),
+                    inline=False)
+
+    avg_display = round((t1_lvl_avg + t2_lvl_avg) / 2, 1) if (t1_lvl_avg > 0 and t2_lvl_avg > 0) else "N/A"
+    logger.info("Players: %s - Avg level: %s - Ratio: %s", t1_count + t2_count, avg_display, ratio_display)
+    logger.info("Allies: %s players - Avg level: %s", t1_count, t1_lvl_avg if isinstance(t1_lvl_avg, (int, float)) and t1_lvl_avg != 0 else "N/A")
+    logger.info("Axis: %s players - Avg level: %s", t2_count, t2_lvl_avg if isinstance(t2_lvl_avg, (int, float)) and t2_lvl_avg != 0 else "N/A")
+
+    # Per role
+    for key in config.CATEGORIES:
+        if key in results:
+            embed.add_field(name=results[key]["title"],
+                            value=results[key]["graph"],
+                            inline=False)
+
+    # Raw stats
+    embed.add_field(name=TRANSL['stats'][config.LANG], value=col1_text, inline=True)
+    embed.add_field(name=TRANSL['allies'][config.LANG], value=col2_text, inline=True)
+    embed.add_field(name=TRANSL['axis'][config.LANG], value=col3_text, inline=True)
+
+    # Timestamp
+    embed.timestamp = datetime.datetime.now()
+
+    common_functions.discord_embed_send(embed, webhook, engine)
 
 
 def watch_balance_loop(engine) -> None:
@@ -200,13 +340,7 @@ def watch_balance_loop(engine) -> None:
             _   # all_recon_squads
         ) = common_functions.team_view_stats(rcon)
     except Exception:
-        return
-
-    if len(all_teams) < 2:
-        logger.info(
-            "Less than 2 teams ingame. Waiting for %s mins...",
-            round((config.WATCH_INTERVAL_SECS / 60), 1)
-        )
+        logger.error("Can't get team_view_stats()")
         return
 
     watch_balance(
@@ -215,122 +349,6 @@ def watch_balance_loop(engine) -> None:
         engine
     )
 
-
-def watch_balance(
-    all_teams: list,
-    all_players: list,
-    engine
-) -> None:
-    """
-    Gets the data from common_functions.team_view_stats(),
-    process it, then display it in a Discord embed
-    """
-    # Check if enabled on this server and get webhook url
-    try:
-        server_number = int(get_server_number())
-        server_config = config.SERVER_CONFIG[server_number - 1]
-
-        if not server_config[1]:
-            return
-
-        discord_webhook = server_config[0]
-
-    except (ValueError, TypeError, IndexError):
-        logger.error("Could not retrieve server configuration.")
-        return
-
-    # Get teams data
-    t1_stats = next((t["allies"] for t in all_teams if "allies" in t), {})
-    t2_stats = next((t["axis"] for t in all_teams if "axis" in t), {})
-
-    if not t1_stats or not t2_stats:
-        return
-
-    t1_count = t1_stats.get("count", 0)
-    t2_count = t2_stats.get("count", 0)
-
-    t1_lvl_avg = team_avg(all_players, "allies", "level", t1_count)
-    t2_lvl_avg = team_avg(all_players, "axis", "level", t2_count)
-
-    if t1_lvl_avg == 0 or t2_lvl_avg == 0:
-        logger.info(
-            "Either Allies or Axis average level is 0. Waiting for %s mins...",
-            round((config.WATCH_INTERVAL_SECS / 60), 2)
-        )
-        return
-
-    # Global ratio
-    avg_diff_ratio = max(t1_lvl_avg, t2_lvl_avg) / min(t1_lvl_avg, t2_lvl_avg)
-    lang = config.LANG
-    embed_title = f"{TRANSL['all_players'][lang]} - {TRANSL['level'][lang]} ({TRANSL['ratio'][lang]}) : {round(avg_diff_ratio, 2)}"
-
-    results = {}
-    for key, roles in config.CATEGORIES.items():
-        t1_c, t1_a, t2_c, t2_a, ratio = role_avg(all_players, roles)
-        if t1_c > 0 and t2_c > 0:
-            avg_total = round((t1_a + t2_a) / 2)
-            results[key] = {
-                "title": f"{TRANSL[key][lang]} - {TRANSL['level'][lang]} ({TRANSL['avg'][lang]}) : {avg_total}",
-                "graph": level_cursor(t1_a, t2_a)
-            }
-
-    # Raw stats
-    fields = [
-        ("kills", t1_stats.get("kills", 0), t2_stats.get("kills", 0)),
-        ("deaths", t1_stats.get("deaths", 0), t2_stats.get("deaths", 0)),
-        ("combat", t1_stats.get("combat", 0), t2_stats.get("combat", 0)),
-        ("offense", t1_stats.get("offense", 0), t2_stats.get("offense", 0)),
-        ("defense", t1_stats.get("defense", 0), t2_stats.get("defense", 0)),
-        ("support", t1_stats.get("support", 0), t2_stats.get("support", 0)),
-    ]
-
-    col1_text = f"{TRANSL['players'][lang]}\n\n"
-    col2_text = f"{t1_count}\n\n"
-    col3_text = f"{t2_count}\n\n"
-
-    for stat_key, v1, v2 in fields:
-        s1, s2 = common_functions.bold_the_highest(v1, v2)
-        a1 = round(team_avg(all_players, 'allies', stat_key, t1_count))
-        a2 = round(team_avg(all_players, 'axis', stat_key, t2_count))
-
-        col1_text += f"{TRANSL[stat_key][lang]} ({TRANSL['tot'][lang]}/{TRANSL['avg'][lang]})\n"
-        col2_text += f"{s1} / {a1}\n"
-        col3_text += f"{s2} / {a2}\n"
-
-    # Discord embed
-    webhook = discord.SyncWebhook.from_url(discord_webhook)
-    embed = discord.Embed(
-        title=embed_title,
-        color=int(common_functions.green_to_red(value=avg_diff_ratio, min_value=1), base=16),
-        url=common_functions.DISCORD_EMBED_AUTHOR_URL
-    )
-    embed.set_author(name=config.BOT_NAME, icon_url=common_functions.DISCORD_EMBED_AUTHOR_ICON_URL)
-
-    # Distribution and global avg
-    embed.add_field(name=f"{TRANSL['all_players'][lang]} - {TRANSL['distribution'][lang]}",
-                    value=level_pop_distribution(all_players, t1_count, t2_count), inline=False)
-    all_avg = round((t1_lvl_avg + t2_lvl_avg) / 2)
-    embed.add_field(name=f"{TRANSL['all_players'][lang]} - {TRANSL['level'][lang]} ({TRANSL['avg'][lang]}) : {all_avg}",
-                    value=level_cursor(t1_lvl_avg, t2_lvl_avg), inline=False)
-
-    # Per role
-    for key in config.CATEGORIES:
-        if key in results:
-            embed.add_field(name=results[key]["title"], value=results[key]["graph"], inline=False)
-
-    # Raw stats
-    embed.add_field(name=TRANSL['stats'][lang], value=col1_text, inline=True)
-    embed.add_field(name=TRANSL['allies'][lang], value=col2_text, inline=True)
-    embed.add_field(name=TRANSL['axis'][lang], value=col3_text, inline=True)
-
-    embed.set_footer(text="Updated: ")
-    embed.set_timestamp(datetime.now(tz=timezone.utc))
-
-    common_functions.discord_embed_send(embed, webhook, engine)
-
-
-# Launching - initial pause : wait to be sure the CRCON is fully started
-sleep(60)
 
 logger = logging.getLogger('rcon')
 
@@ -341,12 +359,14 @@ logger.info(
     config.BOT_NAME
 )
 
-# Launching and running (infinite loop)
+# Launching
 if __name__ == "__main__":
     root_path = os.getenv("BALANCE_WATCH_DATA_PATH", "/data")
     full_path = pathlib.Path(root_path) / pathlib.Path("watch_balance.db")
     engine = create_engine(f"sqlite:///file:{full_path}?mode=rwc&uri=true", echo=False)
     common_functions.Base.metadata.create_all(engine)
+
+    # Running (infinite loop)
     while True:
         watch_balance_loop(engine)
         sleep(config.WATCH_INTERVAL_SECS)
