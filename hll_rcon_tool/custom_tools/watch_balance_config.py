@@ -64,8 +64,8 @@ SERVER_CONFIG = [
 # Recommended : as the stats must be gathered for all the players,
 #               requiring some amount of data from the game server,
 #               you may encounter slowdowns if done too frequently.
-# Default : 300
-WATCH_INTERVAL_SECS = 300
+# Default : 60
+WATCH_INTERVAL_SECS = 60
 
 # Bot name that will be displayed in CRCON "audit logs" and Discord embeds
 BOT_NAME = "CRCON_watch_balance"
