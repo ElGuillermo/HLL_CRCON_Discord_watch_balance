@@ -14,7 +14,7 @@ Feel free to use/modify/distribute, as long as you keep this note in your code
 # Each key and role MUST be in the TRANSL list in common_translations.py
 # for each key/value, two lines will be generated :
 # ex :
-# for "armycommander": {"commander"}
+# for 'armycommander": {"commander"}'
 #       Army commander - level (avg) : 97.50
 #       88 45% [--------------------|<<----------------------] 107 55%
 # You can specify multiple roles as values to group soldiers (see below)
