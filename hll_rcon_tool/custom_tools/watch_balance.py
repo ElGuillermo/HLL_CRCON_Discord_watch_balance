@@ -280,19 +280,18 @@ def watch_balance(
     )
     embed.set_author(name=config.BOT_NAME, icon_url=common_functions.DISCORD_EMBED_AUTHOR_ICON_URL)
 
-    # all players - distribution
-    embed.add_field(name=f"{TRANSL['all_players'][config.LANG]} - {TRANSL['distribution'][config.LANG]}",
-                    value=level_pop_distribution(all_players),
-                    inline=False)
-
     # all players - level
     if t1_lvl_avg > 0 and t2_lvl_avg > 0:
         ratio_display = round(max(t1_lvl_avg, t2_lvl_avg) / min(t1_lvl_avg, t2_lvl_avg), 2)
     else:
         ratio_display = TRANSL['na'][config.LANG]
-
-    embed.add_field(name=f"{TRANSL['all_players'][config.LANG]} - {TRANSL['level'][config.LANG]} ({TRANSL['ratio'][config.LANG]}) : {ratio_display}",
+    embed.add_field(name="",
                     value=level_cursor(t1_lvl_avg, t2_lvl_avg),
+                    inline=False)
+
+    # all players - distribution
+    embed.add_field(name=f"{TRANSL['all_players'][config.LANG]} - {TRANSL['distribution'][config.LANG]}",
+                    value=level_pop_distribution(all_players),
                     inline=False)
 
     avg_display = round((t1_lvl_avg + t2_lvl_avg) / 2, 1) if (t1_lvl_avg > 0 and t2_lvl_avg > 0) else "N/A"
