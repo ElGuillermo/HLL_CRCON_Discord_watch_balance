@@ -68,4 +68,4 @@ SERVER_CONFIG = [
 WATCH_INTERVAL_SECS = 60
 
 # Bot name that will be displayed in CRCON "audit logs" and Discord embeds
-BOT_NAME = "CRCON_watch_balance"
+BOT_NAME = "custom_tools_watch_balance"
