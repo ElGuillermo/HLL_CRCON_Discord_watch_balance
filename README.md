@@ -60,7 +60,7 @@ Unofficial plugin for the Hell Let Loose (HLL) [CRCON](https://github.com/Marech
 
 ## Configuration
 
-#### 1/2 - Edit `/root/hll_rcon_tool/custom_tools/watch_balance_config.py`
+### 1/2 - Edit `/root/hll_rcon_tool/custom_tools/watch_balance_config.py`
 
 - Set the parameters to fit your needs (see inner comments for guidance).
 
