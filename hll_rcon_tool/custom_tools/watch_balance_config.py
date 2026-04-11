@@ -21,18 +21,22 @@ Feel free to use/modify/distribute, as long as you keep this note in your code
 CATEGORIES = {
     # commanders
     "armycommander": {"armycommander"},
+
     # infantry
     "officer": {"officer"},
     "infantry": {"antitank", "automaticrifleman", "assault", "heavymachinegunner", "support", "rifleman", "engineer", "medic"},
+
     # armor
     "tankcommander": {"tankcommander"},
     "armor": {"crewman"},
+
     # artillery
     "artilleryobserver": {"artilleryobserver"},
     "artillery": {"gunner", "operator"},
+
     # recon
     "spotter": {"spotter"},
-    "reconnaissance": {"sniper"}
+    "recon": {"sniper"}
 }
 
 # Discord embeds strings translations
