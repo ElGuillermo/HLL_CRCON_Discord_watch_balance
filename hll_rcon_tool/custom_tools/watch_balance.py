@@ -16,12 +16,17 @@ import os
 import pathlib
 import discord
 from sqlalchemy import create_engine
+
 from rcon.rcon import Rcon
 from rcon.settings import SERVER_INFO
 from rcon.utils import get_server_number
+
 import custom_tools.common_functions as common_functions
 from custom_tools.common_translations import TRANSL
 import custom_tools.watch_balance_config as config
+
+
+logger = logging.getLogger(__name__)
 
 
 def team_avg(
@@ -187,14 +192,14 @@ def role_avg(
     return (t1_count, t1_avg, t2_count, t2_avg, ratio)
 
 
-def units_squad_players_stats(data):
+def units_squad_players_stats(get_team_view_data):
     """
     Extracts squads and players number by type (infantry, armor, etc) for each team
     """
-    if "result" in data:
-        results = data["result"]
+    if "result" in get_team_view_data:
+        results = get_team_view_data["result"]
     else:
-        results = data
+        results = get_team_view_data
 
     stats = {
         "allies": {"players": {}, "units": {}},
@@ -290,7 +295,7 @@ def watch_balance(
     units_col2_text += f"{squad_and_player_stats['allies']['players']['artillery']} / {squad_and_player_stats['allies']['units']['artillery']}\n"
     units_col3_text += f"{squad_and_player_stats['axis']['players']['artillery']} / {squad_and_player_stats['axis']['units']['artillery']}\n"
     # recon
-    units_col1_text += f"{TRANSL['reconnaissance'][config.LANG]}\n"
+    units_col1_text += f"{TRANSL['recon'][config.LANG]}\n"
     units_col2_text += f"{squad_and_player_stats['allies']['players']['recon']} / {squad_and_player_stats['allies']['units']['recon']}\n"
     units_col3_text += f"{squad_and_player_stats['axis']['players']['recon']} / {squad_and_player_stats['axis']['units']['recon']}\n"
 
@@ -425,17 +430,15 @@ def watch_balance_loop(engine) -> None:
     )
 
 
-logger = logging.getLogger('rcon')
-
-logger.info(
-    "\n-------------------------------------------------------------------------------\n"
-    "%s (started)\n"
-    "-------------------------------------------------------------------------------",
-    config.BOT_NAME
-)
-
 # Launching
 if __name__ == "__main__":
+    logger.info(
+        "\n-------------------------------------------------------------------------------\n"
+        "%s (started)\n"
+        "-------------------------------------------------------------------------------",
+        config.BOT_NAME
+    )
+
     root_path = os.getenv("BALANCE_WATCH_DATA_PATH", "/data")
     full_path = pathlib.Path(root_path) / pathlib.Path("watch_balance.db")
     engine = create_engine(f"sqlite:///file:{full_path}?mode=rwc&uri=true", echo=False)
