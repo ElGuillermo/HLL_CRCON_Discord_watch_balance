@@ -23,17 +23,21 @@ that watches the teams players levels and display a report in a dedicated Discor
   (though it's always a good idea to redownload the files, as they could have been updated)
   ```shell
   cd /root/hll_rcon_tool
-  wget -O https://raw.githubusercontent.com/ElGuillermo/HLL_CRCON_restart/refs/heads/main/restart.sh
+
+  wget -N https://raw.githubusercontent.com/ElGuillermo/HLL_CRCON_restart/refs/heads/main/restart.sh
+
   mkdir -p custom_tools
+
   cd custom_tools
-  wget -O https://raw.githubusercontent.com/ElGuillermo/HLL_CRCON_custom_common_functions.py/refs/heads/main/common_functions.py
-  wget -O https://raw.githubusercontent.com/ElGuillermo/HLL_CRCON_custom_common_translations.py/refs/heads/main/common_translations.py
+
+  wget -N https://raw.githubusercontent.com/ElGuillermo/HLL_CRCON_custom_common_functions.py/refs/heads/main/common_functions.py
+
+  wget -N https://raw.githubusercontent.com/ElGuillermo/HLL_CRCON_custom_common_translations.py/refs/heads/main/common_translations.py
+  
+  wget -N https://raw.githubusercontent.com/ElGuillermo/HLL_CRCON_Discord_watch_balance/refs/heads/main/hll_rcon_tool/custom_tools/watch_balance.py
+
+  wget -N https://raw.githubusercontent.com/ElGuillermo/HLL_CRCON_Discord_watch_balance/refs/heads/main/hll_rcon_tool/custom_tools/watch_balance_config.py
   ```
-  Second part
-  ```shell
-  cd /root/hll_rcon_tool/custom_tools
-  wget -O https://raw.githubusercontent.com/ElGuillermo/HLL_CRCON_Discord_watch_balance/refs/heads/main/hll_rcon_tool/custom_tools/watch_balance.py
-  wget -O https://raw.githubusercontent.com/ElGuillermo/HLL_CRCON_Discord_watch_balance/refs/heads/main/hll_rcon_tool/custom_tools/watch_balance_config.py
 - Edit `/root/hll_rcon_tool/config/supervisord.conf` to add this bot section : 
   ```conf
   [program:watch_balance]
@@ -50,6 +54,7 @@ that watches the teams players levels and display a report in a dedicated Discor
 - Restart CRCON :
   ```shell
   cd /root/hll_rcon_tool
+
   sh ./restart.sh
   ```
 
