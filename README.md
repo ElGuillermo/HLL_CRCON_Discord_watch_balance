@@ -145,7 +145,7 @@ To successfully upgrade your CRCON, you will need to undo the changes in :
   into  
   `/root/hll_rcon_tool/config/supervisord.conf`
 - Rebuild and restart CRCON Docker containers (same procedure as in [Configuration 2/2](#22---rebuild-and-restart-crcon-docker-containers)).
-- If anything works as intended, you can delete the backup file :
+- If everything works as intended, you can delete the backup file :
   - Copy/paste/execute these commands :  
     ```shell
     cd /root/hll_rcon_tool
