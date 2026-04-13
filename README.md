@@ -2,7 +2,7 @@
 
 Unofficial plugin for the Hell Let Loose (HLL) [CRCON](https://github.com/MarechJ/hll_rcon_tool)
 
-### Displays the teams players levels in a dedicated Discord channel.
+### Displays the teams, squads and players levels in a Discord channel.
 
 ![HLL_CRCON_Discord_watch_balance](https://github.com/user-attachments/assets/9eb80af9-970f-421e-854a-80686f499082)
 
