@@ -23,16 +23,16 @@ CATEGORIES = {
     "armycommander": {"armycommander"},
 
     # infantry
-    "officer": {"officer"},
-    "infantry": {"antitank", "automaticrifleman", "assault", "heavymachinegunner", "support", "rifleman", "engineer", "medic"},
+    "officer": {"officer", "squadleader", "helicopterpilot"},
+    "infantry": {"antitank", "automaticrifleman", "assault", "heavymachinegunner", "support", "rifleman", "engineer", "medic", "grenadier", "specialist", "helicopterlogisticsofficer"},
 
     # armor
     "tankcommander": {"tankcommander"},
     "armor": {"crewman"},
 
     # artillery
-    "artilleryobserver": {"artilleryobserver"},
-    "artillery": {"gunner", "operator"},
+    "artilleryobserver": {"artilleryobserver", "mortarobserver"},
+    "artillery": {"gunner", "operator", "mortargunner", "mortarsupport"},
 
     # recon
     "spotter": {"spotter"},
